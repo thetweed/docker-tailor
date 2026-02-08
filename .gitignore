@@ -1,0 +1,34 @@
+# Virtual environment
+venv/
+env/
+
+# Environment variables (your API key!)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Database
+*.db
+*.sqlite
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# Flask session files
+flask_session/
+
+# Uploaded files
+uploads/
+
+# Match recommendations
+match_*.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+

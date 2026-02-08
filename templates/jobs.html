@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, select, empty_state %}
+
+{% block title %}Jobs - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>📋 Job Postings</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary">
+                📁 Saved Analyses
+            </a>
+            <a href="{{ url_for('jobs.add_job') }}" class="btn btn-primary">
+                + Add Job
+            </a>
+            {% if jobs %}
+            <form method="POST" action="{{ url_for('jobs.delete_all_jobs') }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger" 
+                        onclick="return confirm('Delete all {{ jobs|length }} jobs? This cannot be undone!')">
+                    🗑️ Delete All Jobs
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {# Quick Add Job URL #}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Quick Add Job</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('jobs.add_job') }}" data-loading id="quickAddForm">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="url" class="form-label">Job Posting URL</label>
+                        <input 
+                            type="url" 
+                            id="url" 
+                            name="url" 
+                            class="form-input"
+                            placeholder="https://jobs.company.com/posting..." 
+                            required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="quickAddBtn">
+                        Add & Analyze
+                    </button>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div id="quickLoadingIndicator" style="display: none; margin-top: var(--spacing-md); padding: var(--spacing-md); background: #d1ecf1; border: 1px solid #bee5eb; border-radius: var(--border-radius); text-align: center;">
+                    <div class="spinner" style="margin: 0 auto var(--spacing-sm);"></div>
+                    <p style="margin: 0; color: #0c5460; font-weight: var(--font-weight-bold);">
+                        🔍 Scraping and analyzing job posting...
+                    </p>
+                    <p style="margin-top: var(--spacing-xs); color: #0c5460;">
+                        <small>This usually takes 10-15 seconds</small>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Search and Filter #}
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('jobs.list_jobs') }}">
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: end;">
+                    {{ input(
+                        name='search',
+                        label='Search',
+                        placeholder='Search by company, title, or location',
+                        value=search
+                    ) }}
+                    
+                    {{ select(
+                        name='filter_by',
+                        label='Filter by',
+                        options=[
+                            ('all', 'All Fields'),
+                            ('company_name', 'Company'),
+                            ('job_title', 'Title'),
+                            ('location', 'Location')
+                        ],
+                        selected=filter_by
+                    ) }}
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        {% if search %}
+                            <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-secondary">Clear</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Job Results #}
+    {% if jobs %}
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Compensation</th>
+                        <th>Date Added</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('jobs.view_job', job_id=job.id) }}">
+                                    <strong>{{ job.company_name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ job.job_title }}</td>
+                            <td>{{ job.location }}</td>
+                            <td>{{ job.compensation }}</td>
+                            <td>{{ job.date_added.strftime('%Y-%m-%d') if job.date_added else 'N/A' }}</td>
+                            <td>
+                                <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                    <a href="{{ url_for('jobs.view_job', job_id=job.id) }}" 
+                                       class="btn btn-small btn-secondary">
+                                        View
+                                    </a>
+                                    <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;" class="tailor-form">
+                                        <button type="submit" 
+                                                class="btn btn-small btn-primary tailor-btn"
+                                                data-job-title="{{ job.job_title }}"
+                                                title="Tailor your resume for this job">
+                                            ✨ Tailor Resume
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('jobs.delete_job', job_id=job.id) }}" style="display: inline;">
+                                        <button type="submit" 
+                                                class="btn btn-small btn-danger" 
+                                                onclick="return confirm('Delete {{ job.company_name }} - {{ job.job_title }}?')"
+                                                title="Delete this job">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <p class="text-muted" style="margin-top: var(--spacing-md);">
+            {{ jobs|length }} job{{ 's' if jobs|length != 1 else '' }} found
+        </p>
+    {% else %}
+        {{ empty_state(
+            icon='📭',
+            title='No jobs found',
+            message='Add your first job posting using the quick add form above!',
+            action_url='#url',
+            action_text='☝️ Scroll to Top'
+        ) }}
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Quick add form loading state
+document.getElementById('quickAddForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('quickAddBtn');
+    const loadingIndicator = document.getElementById('quickLoadingIndicator');
+    const urlInput = this.querySelector('input[name="url"]');
+    
+    if (!urlInput.value || urlInput.value.trim() === '') {
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.textContent = '⏳ Processing...';
+    
+    loadingIndicator.style.display = 'block';
+    
+    setTimeout(() => {
+        loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+});
+</script>
+
+<script>
+// Quick add form loading state
+document.getElementById('quickAddForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('quickAddBtn');
+    const loadingIndicator = document.getElementById('quickLoadingIndicator');
+    const urlInput = this.querySelector('input[name="url"]');
+    
+    if (!urlInput.value || urlInput.value.trim() === '') {
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.textContent = '⏳ Processing...';
+    
+    loadingIndicator.style.display = 'block';
+    
+    setTimeout(() => {
+        loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+});
+
+// Tailor Resume loading states
+document.querySelectorAll('.tailor-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const btn = this.querySelector('.tailor-btn');
+        const jobTitle = btn.dataset.jobTitle || 'this job';
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.innerHTML = '⏳ Analyzing...';
+        
+        // Show global loading message
+        const loadingMsg = document.createElement('div');
+        loadingMsg.id = 'globalTailorLoading';
+        loadingMsg.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 1rem 2rem; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center;';
+        loadingMsg.innerHTML = `
+            <div class="spinner" style="margin: 0 auto 0.5rem;"></div>
+            <p style="margin: 0; color: #0c5460; font-weight: bold;">
+                🤖 Tailoring your resume for ${jobTitle}...
+            </p>
+            <p style="margin: 0.25rem 0 0; color: #0c5460; font-size: 0.875rem;">
+                This usually takes 10-20 seconds
+            </p>
+        `;
+        document.body.appendChild(loadingMsg);
+    });
+});
+</script>
+{% endblock %}

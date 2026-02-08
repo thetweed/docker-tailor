@@ -1,0 +1,23 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible">
+                    <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
+                    
+                    {% if category == 'success' %}
+                        <span class="alert-icon">✓</span>
+                    {% elif category == 'error' %}
+                        <span class="alert-icon">✗</span>
+                    {% elif category == 'warning' %}
+                        <span class="alert-icon">⚠</span>
+                    {% elif category == 'info' %}
+                        <span class="alert-icon">ℹ</span>
+                    {% endif %}
+                    
+                    <span class="alert-message">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}Add Job Manually - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Add Job Manually</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted mb-lg">
+            Use this form if automatic scraping fails or if you want to enter job details yourself.
+        </p>
+        
+        <form method="POST">
+            {{ input(
+                name='url',
+                label='Job URL',
+                type='url',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='company',
+                label='Company',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='title',
+                label='Job Title',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='location',
+                label='Location'
+            ) }}
+            
+            {{ input(
+                name='compensation',
+                label='Compensation'
+            ) }}
+            
+            {{ input(
+                name='date_posted',
+                label='Date Posted'
+            ) }}
+            
+            {{ textarea(
+                name='requirements',
+                label='Requirements / Job Description',
+                rows=10,
+                required=true,
+                placeholder='Paste the job requirements and description here...'
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Add Job') }}
+                {{ cancel_button(url_for('jobs.list_jobs'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

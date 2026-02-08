@@ -1,0 +1,47 @@
+<!-- Delete All Modal -->
+<div id="deleteAllModal" class="modal-overlay" style="display: none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>⚠️ WARNING: Delete All Components</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">×</button>
+        </div>
+        
+        <div class="modal-body">
+            <p><strong>This will permanently delete ALL of your resume components:</strong></p>
+            <ul>
+                <li>All experiences</li>
+                <li>All bullet points</li>
+                <li>All skills</li>
+                <li>All education entries</li>
+            </ul>
+            
+            <div class="alert alert-danger" style="margin: var(--spacing-md) 0;">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-message">This action CANNOT be undone!</span>
+            </div>
+            
+            <p>To confirm, type <strong>DELETE_EVERYTHING</strong> below:</p>
+            
+            <form method="POST" action="{{ url_for('resume.delete_all_components') }}" id="deleteAllForm">
+                <div class="form-group">
+                    <input 
+                        type="text" 
+                        id="confirmInput" 
+                        name="confirm_delete_all" 
+                        class="form-input"
+                        placeholder="Type DELETE_EVERYTHING to confirm" 
+                        autocomplete="off">
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        🗑️ Delete Everything
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

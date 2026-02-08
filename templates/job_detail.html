@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job.job_title }} - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>{{ job.job_title }}</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-secondary">
+                ← Back to Jobs
+            </a>
+            <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-primary" title="Tailor your resume for this job">
+                    ✨ Tailor Resume
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('jobs.delete_job', job_id=job.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger" 
+                        onclick="return confirm('Delete this job?')">
+                    Delete Job
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <!-- Job Information -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Job Information</h2>
+        </div>
+        <div class="card-body">
+            <dl style="display: grid; grid-template-columns: 150px 1fr; gap: var(--spacing-sm) var(--spacing-lg);">
+                <dt><strong>Company:</strong></dt>
+                <dd>{{ job.company_name }}</dd>
+                
+                <dt><strong>Title:</strong></dt>
+                <dd>{{ job.job_title }}</dd>
+                
+                <dt><strong>Location:</strong></dt>
+                <dd>{{ job.location }}</dd>
+                
+                <dt><strong>Compensation:</strong></dt>
+                <dd>{{ job.compensation }}</dd>
+                
+                <dt><strong>Date Posted:</strong></dt>
+                <dd>{{ job.date_posted }}</dd>
+                
+                <dt><strong>Date Added:</strong></dt>
+                <dd>{{ job.date_added.strftime('%Y-%m-%d') if job.date_added else 'N/A' }}</dd>
+                
+                <dt><strong>URL:</strong></dt>
+                <dd>
+                    <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer">
+                        {{ job.url[:80] }}{% if job.url|length > 80 %}...{% endif %}
+                    </a>
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Requirements -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Requirements</h2>
+        </div>
+        <div class="card-body">
+            <div style="white-space: pre-wrap; line-height: var(--line-height-relaxed);">
+{{ job.requirements }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Job Posting -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Full Job Posting</h2>
+        </div>
+        <div class="card-body">
+            <div style="white-space: pre-wrap; line-height: var(--line-height-relaxed); color: var(--color-text-muted);">
+{{ job.raw_text[:2000] }}
+{% if job.raw_text|length > 2000 %}
+                <p><em>... (truncated, showing first 2000 characters)</em></p>
+{% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tailor Resume loading state
+document.querySelector('form[action*="run_tailor"]').addEventListener('submit', function(e) {
+    const btn = this.querySelector('button[type="submit"]');
+    
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.innerHTML = '⏳ Analyzing...';
+    
+    // Show loading message
+    const loadingMsg = document.createElement('div');
+    loadingMsg.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 1.5rem 2rem; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; min-width: 300px;';
+    loadingMsg.innerHTML = `
+        <div class="spinner" style="margin: 0 auto 0.75rem;"></div>
+        <p style="margin: 0; color: #0c5460; font-weight: bold; font-size: 1.1rem;">
+            🤖 Tailoring your resume...
+        </p>
+        <p style="margin: 0.5rem 0 0; color: #0c5460;">
+            Analyzing job requirements and matching to your experience
+        </p>
+        <p style="margin: 0.25rem 0 0; color: #0c5460; font-size: 0.875rem;">
+            <small>This usually takes 10-20 seconds</small>
+        </p>
+    `;
+    document.body.appendChild(loadingMsg);
+});
+</script>
+{% endblock %}

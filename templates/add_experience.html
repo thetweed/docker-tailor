@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}Add Experience - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Add Experience</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='company',
+                label='Company Name',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='title',
+                label='Job Title',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='alt_titles',
+                label='Alternate Titles',
+                placeholder='e.g., Senior PM, Lead Engineer',
+                help_text='Comma-separated alternate job titles'
+            ) }}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                {{ input(
+                    name='start_date',
+                    label='Start Date',
+                    placeholder='e.g., Jan 2020'
+                ) }}
+                
+                {{ input(
+                    name='end_date',
+                    label='End Date',
+                    placeholder='e.g., Present'
+                ) }}
+            </div>
+            
+            {{ input(
+                name='location',
+                label='Location'
+            ) }}
+            
+            {{ textarea(
+                name='description',
+                label='Description',
+                rows=3
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Add Experience') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

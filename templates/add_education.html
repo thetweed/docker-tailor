@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, submit_button, cancel_button %}
+
+{% block title %}Add Education - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Add Education</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='school',
+                label='School Name',
+                required=true
+            ) }}
+            
+            {{ input(
+                name='degree',
+                label='Degree',
+                placeholder='e.g., Bachelor of Science'
+            ) }}
+            
+            {{ input(
+                name='field',
+                label='Field of Study',
+                placeholder='e.g., Computer Science'
+            ) }}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                {{ input(
+                    name='grad_year',
+                    label='Graduation Year',
+                    placeholder='e.g., 2020'
+                ) }}
+                
+                {{ input(
+                    name='location',
+                    label='Location'
+                ) }}
+            </div>
+            
+            <div class="form-group">
+                {{ submit_button('Add Education') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import empty_state %}
+
+{% block title %}AI Suggestions - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>💡 AI Suggestions</h1>
+        <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+            ← Back to Resume Library
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <!-- Summary Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: var(--color-primary);">
+                    {{ total_pending }}
+                </h2>
+                <p class="text-muted">Pending</p>
+            </div>
+        </div>
+        
+        <div class="card" style="background: #d4edda;">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: #155724;">
+                    {{ applied_count }}
+                </h2>
+                <p style="color: #155724;">Applied</p>
+            </div>
+        </div>
+        
+        <div class="card" style="background: #f8d7da;">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: #721c24;">
+                    {{ dismissed_count }}
+                </h2>
+                <p style="color: #721c24;">Dismissed</p>
+            </div>
+        </div>
+    </div>
+
+    {% if total_pending == 0 %}
+        {{ empty_state(
+            icon='🎉',
+            title='No pending suggestions!',
+            message='Import a resume to get AI suggestions for improvement.',
+            action_url=url_for('resume.import_resume'),
+            action_text='Import Resume'
+        ) }}
+    {% else %}
+
+    <!-- Clarifying Questions -->
+    {% if suggestions.clarifying_question %}
+    <div class="card" id="questions-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="card-title">❓ Clarifying Questions ({{ suggestions.clarifying_question|length }})</h2>
+                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                        Answer these to improve your profile
+                    </p>
+                </div>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='clarifying_question') }}">
+                    <button type="submit" class="btn btn-small btn-secondary" 
+                            onclick="return confirm('Dismiss all {{ suggestions.clarifying_question|length }} questions?')">
+                        🗑️ Dismiss All
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% for sugg in suggestions.clarifying_question %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h4 style="margin-bottom: var(--spacing-md);">{{ sugg.suggested_text }}</h4>
+            
+            <form method="POST" action="{{ url_for('suggestions.answer_question', sugg_id=sugg.id) }}">
+                <div class="form-group">
+                    <textarea name="answer" 
+                              class="form-textarea" 
+                              rows="3" 
+                              placeholder="Your answer..." 
+                              required></textarea>
+                </div>
+                
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <button type="submit" class="btn btn-small btn-success">
+                        💾 Save Answer
+                    </button>
+                    <button type="button" 
+                            class="btn btn-small btn-secondary"
+                            onclick="this.closest('form').nextElementSibling.submit()">
+                        ⏭️ Skip Question
+                    </button>
+                </div>
+            </form>
+            
+            <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: none;">
+                <button type="submit"></button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Experience Alternate Titles -->
+    {% if suggestions.experience_alternate_titles %}
+    <div class="card" id="titles-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="card-title">💼 Experience Title Variations ({{ suggestions.experience_alternate_titles|length }})</h2>
+                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                        Alternate job titles to appeal to different roles
+                    </p>
+                </div>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='experience_alternate_titles') }}">
+                    <button type="submit" class="btn btn-small btn-secondary" 
+                            onclick="return confirm('Dismiss all {{ suggestions.experience_alternate_titles|length }} title suggestions?')">
+                        🗑️ Dismiss All
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Group by experience -->
+        {% set current_exp = namespace(id=None) %}
+        {% for sugg in suggestions.experience_alternate_titles %}
+            {% if sugg.component_id != current_exp.id %}
+                {% if not loop.first %}
+                    </div></div> <!-- Close previous experience -->
+                {% endif %}
+                {% set current_exp.id = sugg.component_id %}
+                
+                <div class="card-body" style="border-top: 1px solid var(--color-border);">
+                    <h4 style="margin-bottom: var(--spacing-xs);">{{ sugg.exp_title }} at {{ sugg.company_name }}</h4>
+                    <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                        <strong>Current Title:</strong> {{ sugg.original_text }}
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+            {% endif %}
+            
+            <!-- Individual title suggestion -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); background: var(--color-background-alt); border-radius: var(--border-radius);">
+                <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-md); border-radius: var(--border-radius); font-weight: var(--font-weight-medium);">
+                    {{ sugg.suggested_text }}
+                </span>
+                <div style="display: flex; gap: var(--spacing-xs);">
+                    <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-success">✓ Add</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-secondary">✗</button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if loop.last %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Bullet Improvements -->
+    {% if suggestions.bullet_improvement %}
+    <div class="card" id="bullets-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="card-title">✨ Bullet Point Improvements ({{ suggestions.bullet_improvement|length }})</h2>
+                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                        More impactful versions of your bullets
+                    </p>
+                </div>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='bullet_improvement') }}">
+                    <button type="submit" class="btn btn-small btn-secondary" 
+                            onclick="return confirm('Dismiss all {{ suggestions.bullet_improvement|length }} bullet improvements?')">
+                        🗑️ Dismiss All
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        {% for sugg in suggestions.bullet_improvement %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--spacing-md); align-items: start; margin-bottom: var(--spacing-md);">
+                <div>
+                    <strong>Original:</strong>
+                    <p style="margin-top: var(--spacing-xs);">{{ sugg.original_text }}</p>
+                </div>
+                <div style="font-size: var(--font-size-xl); color: var(--color-primary); align-self: center;">→</div>
+                <div>
+                    <strong style="color: var(--color-success);">Improved:</strong>
+                    <p style="margin-top: var(--spacing-xs);">{{ sugg.suggested_text }}</p>
+                </div>
+            </div>
+            
+            <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                <strong>Why:</strong> {{ sugg.reasoning }}
+            </p>
+            
+            <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+                <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    <input type="hidden" name="action" value="replace">
+                    <button type="submit" class="btn btn-small btn-warning">
+                        🔄 Replace Original
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    <input type="hidden" name="action" value="add_new">
+                    <button type="submit" class="btn btn-small btn-success">
+                        ➕ Add as New (Keep Original)
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-secondary">
+                        ✗ Dismiss
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- New Skills -->
+    {% if suggestions.new_skill %}
+    <div class="card" id="skills-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="card-title">🎯 Suggested Skills ({{ suggestions.new_skill|length }})</h2>
+                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                        Skills implied by your experience
+                    </p>
+                </div>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_skill') }}">
+                    <button type="submit" class="btn btn-small btn-secondary" 
+                            onclick="return confirm('Dismiss all {{ suggestions.new_skill|length }} skill suggestions?')">
+                        🗑️ Dismiss All
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-md);">
+                {% for sugg in suggestions.new_skill %}
+                <div style="padding: var(--spacing-md); background: var(--color-background-alt); border-radius: var(--border-radius); border: 1px solid var(--color-border);">
+                    <div style="font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-xs);">
+                        {{ sugg.suggested_text }}
+                    </div>
+                    <div class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-md);">
+                        {{ sugg.reasoning }}
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs);">
+                        <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-success">✓ Add</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary">✗</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- New Bullets from Questions -->
+    {% if suggestions.new_bullet %}
+    <div class="card" id="new-bullets-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="card-title">📝 Suggested Bullet Points ({{ suggestions.new_bullet|length }})</h2>
+                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                        Generated from your answers to clarifying questions
+                    </p>
+                </div>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_bullet') }}">
+                    <button type="submit" class="btn btn-small btn-secondary" 
+                            onclick="return confirm('Dismiss all {{ suggestions.new_bullet|length }} bullet suggestions?')">
+                        🗑️ Dismiss All
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% for sugg in suggestions.new_bullet %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <p style="margin-bottom: var(--spacing-sm);">• {{ sugg.suggested_text }}</p>
+            <p class="text-muted" style="margin-bottom: var(--spacing-md);">{{ sugg.reasoning }}</p>
+            
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-success">
+                        ✓ Add to Resume
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-secondary">
+                        ✗ Dismiss
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% endif %}
+{% endblock %}

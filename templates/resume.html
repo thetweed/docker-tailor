@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import empty_state %}
+
+{% block title %}Resume Library - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📚 Resume Component Library</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('resume.import_resume') }}" class="btn btn-primary">
+                📤 Import Resume
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <!-- Experiences Section -->
+    <div class="card" id="experiences-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="card-title">Experiences ({{ experiences|length }})</h2>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <a href="{{ url_for('resume.add_experience') }}" class="btn btn-small btn-primary">
+                        + Add Experience
+                    </a>
+                    {% if experiences %}
+                    <form method="POST" action="{{ url_for('resume.delete_section', section_type='experiences') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-danger" 
+                                onclick="return confirm('Delete all {{ experiences|length }} experiences? This cannot be undone!')">
+                            🗑️ Delete All
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if experiences %}
+            {% for exp in experiences %}
+            <div class="card-body" id="experience-{{ exp.id }}" style="border-top: 1px solid var(--color-border);">
+                <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: var(--spacing-xs);">
+                            {{ exp.job_title }}
+                            {% if exp.alternate_titles %}
+                                <span class="text-muted"> / {{ exp.alternate_titles }}</span>
+                            {% endif %}
+                        </h3>
+                        <p style="margin-bottom: var(--spacing-xs);"><strong>{{ exp.company_name }}</strong></p>
+                        <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
+                            {{ exp.start_date }} - {{ exp.end_date }} • {{ exp.location }}
+                        </p>
+                        {% if exp.description %}
+                            <p class="text-muted" style="margin-top: var(--spacing-sm);">{{ exp.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
+                        <a href="{{ url_for('resume.edit_experience', exp_id=exp.id) }}" class="btn btn-small btn-secondary">
+                            Edit
+                        </a>
+                        <form method="POST" action="{{ url_for('resume.delete_experience', exp_id=exp.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-danger" 
+                                    onclick="return confirm('Delete this experience?')">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card-body">
+                <p class="text-muted text-center">No experiences added yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Bullets Section -->
+    <div class="card" id="bullets-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="card-title">Bullet Points ({{ bullets|length }})</h2>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <a href="{{ url_for('resume.add_bullet') }}" class="btn btn-small btn-primary">
+                        + Add Bullet
+                    </a>
+                    {% if bullets %}
+                    <form method="POST" action="{{ url_for('resume.delete_section', section_type='bullets') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-danger" 
+                                onclick="return confirm('Delete all {{ bullets|length }} bullets? This cannot be undone!')">
+                            🗑️ Delete All
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if bullets %}
+            {% for bullet in bullets %}
+            <div class="card-body" id="bullet-{{ bullet.id }}" style="border-top: 1px solid var(--color-border);">
+                <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
+                    <div style="flex: 1;">
+                        <p style="margin-bottom: var(--spacing-sm);">• {{ bullet.bullet_text }}</p>
+                        {% if bullet.template_text and bullet.template_text != bullet.bullet_text %}
+                            <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
+                                <em>Template: {{ bullet.template_text }}</em>
+                            </p>
+                        {% endif %}
+                        <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; align-items: center;">
+                            {% if bullet.category %}
+                                <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+                                    {{ bullet.category }}
+                                </span>
+                            {% endif %}
+                            {% if bullet.tags %}
+                                {% for tag in bullet.tags.split(',') %}
+                                    <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                        {{ tag.strip() }}
+                                    </span>
+                                {% endfor %}
+                            {% endif %}
+                            <span class="text-muted" style="font-size: var(--font-size-sm);">
+                                {% if bullet.company_name %}
+                                    → {{ bullet.job_title }} at {{ bullet.company_name }}
+                                {% else %}
+                                    → Standalone
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
+                        <a href="{{ url_for('resume.edit_bullet', bullet_id=bullet.id) }}" class="btn btn-small btn-secondary">
+                            Edit
+                        </a>
+                        <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-danger" 
+                                    onclick="return confirm('Delete this bullet?')">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card-body">
+                <p class="text-muted text-center">No bullets added yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Skills Section -->
+    <div class="card" id="skills-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="card-title">Skills ({{ skills|length }})</h2>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <a href="{{ url_for('resume.add_skill') }}" class="btn btn-small btn-primary">
+                        + Add Skill
+                    </a>
+                    {% if skills %}
+                    <form method="POST" action="{{ url_for('resume.delete_section', section_type='skills') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-danger" 
+                                onclick="return confirm('Delete all {{ skills|length }} skills? This cannot be undone!')">
+                            🗑️ Delete All
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if skills %}
+            <div class="card-body">
+                {% set current_category = namespace(value='') %}
+                {% for skill in skills %}
+                    {% if skill.category != current_category.value %}
+                        {% if not loop.first %}
+                            </div></div>
+                        {% endif %}
+                        {% set current_category.value = skill.category %}
+                        <div style="margin-bottom: var(--spacing-lg);">
+                            <h3 style="margin-bottom: var(--spacing-md); font-size: var(--font-size-lg);">
+                                {{ skill.category or 'Uncategorized' }}
+                            </h3>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                    {% endif %}
+                                <div id="skill-{{ skill.id }}" style="display: inline-flex; align-items: center; gap: var(--spacing-xs); background: var(--color-background-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-xs) var(--spacing-sm);">
+                                    <span>{{ skill.skill_name }}</span>
+                                    <a href="{{ url_for('resume.edit_skill', skill_id=skill.id) }}" 
+                                       style="text-decoration: none; font-size: var(--font-size-sm);" 
+                                       title="Edit">✏️</a>
+                                    <form method="POST" action="{{ url_for('resume.delete_skill', skill_id=skill.id) }}#skill-{{ skill.id }}" style="display: inline; margin: 0;">
+                                        <button type="submit" 
+                                                style="background: none; border: none; cursor: pointer; padding: 0; font-size: var(--font-size-sm); color: var(--color-danger);" 
+                                                onclick="return confirm('Delete this skill?')" 
+                                                title="Delete">🗑️</button>
+                                    </form>
+                                </div>
+                    {% if loop.last %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card-body">
+                <p class="text-muted text-center">No skills added yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Education Section -->
+    <div class="card" id="education-section">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="card-title">Education ({{ education|length }})</h2>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <a href="{{ url_for('resume.add_education') }}" class="btn btn-small btn-primary">
+                        + Add Education
+                    </a>
+                    {% if education %}
+                    <form method="POST" action="{{ url_for('resume.delete_section', section_type='education') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-danger" 
+                                onclick="return confirm('Delete all {{ education|length }} education entries? This cannot be undone!')">
+                            🗑️ Delete All
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {% if education %}
+            {% for edu in education %}
+            <div class="card-body" id="education-{{ edu.id }}" style="border-top: 1px solid var(--color-border);">
+                <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: var(--spacing-xs);">
+                            {{ edu.degree }} in {{ edu.field_of_study }}
+                        </h3>
+                        <p style="margin-bottom: var(--spacing-xs);"><strong>{{ edu.school_name }}</strong></p>
+                        <p class="text-muted" style="font-size: var(--font-size-sm);">
+                            Graduated: {{ edu.graduation_year }} • {{ edu.location }}
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
+                        <a href="{{ url_for('resume.edit_education', edu_id=edu.id) }}" class="btn btn-small btn-secondary">
+                            Edit
+                        </a>
+                        <form method="POST" action="{{ url_for('resume.delete_education', edu_id=edu.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-danger" 
+                                    onclick="return confirm('Delete this education?')">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card-body">
+                <p class="text-muted text-center">No education entries added yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Include Delete All Modal -->
+    {% include 'delete_all_modal.html' %}
+    
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Delete All Modal Functions
+function openDeleteModal() {
+    const modal = document.getElementById('deleteAllModal');
+    const input = document.getElementById('confirmInput');
+    const btn = document.getElementById('confirmDeleteBtn');
+    
+    if (modal && input && btn) {
+        modal.style.display = 'flex';
+        input.value = '';
+        btn.disabled = true;
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteAllModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Enable delete button only when confirmation text matches
+const confirmInput = document.getElementById('confirmInput');
+if (confirmInput) {
+    confirmInput.addEventListener('input', function(e) {
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = (e.target.value !== 'DELETE_EVERYTHING');
+        }
+    });
+}
+
+// Close modal when clicking outside
+const deleteModal = document.getElementById('deleteAllModal');
+if (deleteModal) {
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDeleteModal();
+        }
+    });
+}
+</script>
+{% endblock %}

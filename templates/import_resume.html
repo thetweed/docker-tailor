@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import file_upload, submit_button %}
+
+{% block title %}Import Resume - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📤 Import Resume</h1>
+        <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+            ← Back to Resume Library
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">How Resume Import Works</h3>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li><strong>Upload</strong> your resume (PDF, DOCX, or TXT)</li>
+                <li><strong>AI Analysis</strong> - Claude extracts experiences, bullets, skills, and education</li>
+                <li><strong>AI Enhancement</strong> - Get suggestions for alternate titles, improved bullets, and missing skills</li>
+                <li><strong>Review & Edit</strong> - Approve or modify the extracted components</li>
+                <li><strong>Save</strong> - Add everything to your resume library</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" data-loading>
+                {{ file_upload(
+                    name='resume_file',
+                    label='Select Resume File',
+                    accept='.pdf,.docx,.txt',
+                    required=true,
+                    help_text='Accepted formats: PDF, DOCX, or TXT (max 16MB)'
+                ) }}
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        📤 Upload & Analyze Resume
+                    </button>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div id="loadingIndicator" style="display: none; margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--color-info-light); border-radius: var(--border-radius); text-align: center;">
+                    <div class="spinner" style="margin: 0 auto var(--spacing-sm);"></div>
+                    <p style="margin: 0; color: var(--color-info-dark); font-weight: var(--font-weight-medium);">
+                        🤖 Analyzing your resume with AI...<br>
+                        <small>This usually takes 15-30 seconds</small>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">💡 Tips for Best Results</h3>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li>Use a well-formatted resume (clear sections, bullet points)</li>
+                <li>PDF format works best for complex formatting</li>
+                <li>The more detailed your resume, the better the AI suggestions</li>
+                <li>You can review and edit everything before saving</li>
+            </ul>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Enhanced loading state for resume upload
+document.querySelector('form[data-loading]').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const fileInput = this.querySelector('input[type="file"]');
+    
+    // Check if file is selected
+    if (!fileInput.files || fileInput.files.length === 0) {
+        return; // Let browser validation handle it
+    }
+    
+    // Disable button
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
+    
+    // Show loading indicator
+    loadingIndicator.style.display = 'block';
+    
+    // Scroll to show the loading message
+    loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+</script>
+{% endblock %}

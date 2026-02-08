@@ -1,0 +1,74 @@
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables (will be provided at runtime)
+.env
+
+# Database (will be persisted via volume)
+*.db
+*.sqlite
+*.sqlite3
+
+# Session data (will be persisted via volume)
+flask_session/
+
+# Uploads (will be persisted via volume)
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Documentation
+*.md
+README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Setup scripts (not needed in container)
+setup.sh
+setup.bat
+
+# Logs
+*.log

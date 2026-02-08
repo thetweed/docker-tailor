@@ -1,0 +1,27 @@
+<nav class="navbar">
+    <div class="container">
+        <div class="navbar-brand">
+            <a href="{{ url_for('main.index') }}" class="navbar-logo">
+                🎯 Job Tracker
+            </a>
+        </div>
+        
+        <div class="navbar-menu">
+            <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
+                Dashboard
+            </a>
+            <a href="{{ url_for('jobs.list_jobs') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('jobs.') %}active{% endif %}">
+                Jobs
+            </a>
+            <a href="{{ url_for('tailoring.tailor_home') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('tailoring.') %}active{% endif %}">
+                Tailor
+            </a>
+            <a href="{{ url_for('resume.view_resume') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('resume.') %}active{% endif %}">
+                Resume
+            </a>
+            <a href="{{ url_for('suggestions.view_suggestions') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('suggestions.') %}active{% endif %}">
+                Suggestions
+            </a>
+        </div>
+    </div>
+</nav>

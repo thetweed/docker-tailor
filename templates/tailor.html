@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import empty_state %}
+
+{% block title %}Tailor Resume - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>✨ Tailor Your Resume</h1>
+{% endblock %}
+
+{% block content %}
+    <!-- Two Section Layout -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+        
+        <!-- Section 1: Tailor for a Job -->
+        <div class="card" style="height: fit-content;">
+            <div class="card-header">
+                <h2 class="card-title">Select a Job to Tailor For</h2>
+            </div>
+            <div class="card-body">
+                <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                    Choose a job posting and Claude will analyze which resume components to use and how to position yourself.
+                </p>
+                
+                {% if jobs %}
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                        {% for job in jobs %}
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 style="margin-bottom: var(--spacing-xs);">
+                                    {{ job.job_title }}
+                                </h4>
+                                <p class="text-muted" style="margin-bottom: var(--spacing-xs);">
+                                    {{ job.company_name }}
+                                </p>
+                                <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-md);">
+                                    📍 {{ job.location }}
+                                </p>
+                                <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" class="tailor-form">
+                                    <button type="submit" class="btn btn-primary tailor-btn" style="width: 100%;" data-job-title="{{ job.job_title }}">
+                                        ✨ Tailor Resume for This Job
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ empty_state(
+                        icon='📭',
+                        title='No jobs found',
+                        message='Add some jobs first to start tailoring your resume!',
+                        action_url=url_for('jobs.add_job'),
+                        action_text='+ Add Job'
+                    ) }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Section 2: Saved Analyses -->
+        <div class="card" style="height: fit-content;">
+            <div class="card-header">
+                <h2 class="card-title">📁 Saved Tailoring Analyses</h2>
+            </div>
+            <div class="card-body">
+                <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                    View your previously saved resume tailoring analyses.
+                </p>
+                <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary" style="width: 100%;">
+                    View All Saved Analyses →
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- How It Works -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">How Resume Tailoring Works</h3>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li>Select a job posting from your list above</li>
+                <li>Claude AI analyzes the job requirements</li>
+                <li>Get recommendations on which experiences, bullets, and skills to include</li>
+                <li>See an overall strategy for positioning yourself for the role</li>
+                <li>Save the analysis for future reference</li>
+            </ol>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tailor Resume loading states
+document.querySelectorAll('.tailor-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const btn = this.querySelector('.tailor-btn');
+        const jobTitle = btn.dataset.jobTitle || 'this job';
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.innerHTML = '⏳ Analyzing...';
+        
+        // Show global loading message
+        const loadingMsg = document.createElement('div');
+        loadingMsg.id = 'globalTailorLoading';
+        loadingMsg.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 1.5rem 2rem; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; min-width: 350px;';
+        loadingMsg.innerHTML = `
+            <div class="spinner" style="margin: 0 auto 0.75rem;"></div>
+            <p style="margin: 0; color: #0c5460; font-weight: bold; font-size: 1.1rem;">
+                🤖 Tailoring your resume for ${jobTitle}...
+            </p>
+            <p style="margin: 0.5rem 0 0; color: #0c5460;">
+                Analyzing job requirements and matching to your experience
+            </p>
+            <p style="margin: 0.25rem 0 0; color: #0c5460; font-size: 0.875rem;">
+                <small>This usually takes 10-20 seconds</small>
+            </p>
+        `;
+        document.body.appendChild(loadingMsg);
+    });
+});
+</script>
+{% endblock %}

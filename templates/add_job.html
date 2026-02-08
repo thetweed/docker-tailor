@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, submit_button, cancel_button %}
+
+{% block title %}Add Job - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Add Job Posting</h1>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" data-loading id="addJobForm">
+                {{ input(
+                    name='url',
+                    label='Job Posting URL',
+                    type='url',
+                    required=true,
+                    placeholder='https://...',
+                    help_text='Paste the URL of the job posting. It will be scraped and analyzed automatically.'
+                ) }}
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+                        Add & Analyze Job
+                    </button>
+                    {{ cancel_button(url_for('jobs.list_jobs'), 'Cancel') }}
+                </div>
+                
+                <!-- Loading indicator (hidden by default) -->
+                <div id="loadingIndicator" style="display: none; margin-top: var(--spacing-lg); padding: var(--spacing-lg); background: #d1ecf1; border: 1px solid #bee5eb; border-radius: var(--border-radius); text-align: center;">
+                    <div class="spinner" style="margin: 0 auto var(--spacing-md);"></div>
+                    <p style="margin: 0; color: #0c5460; font-weight: var(--font-weight-bold); font-size: var(--font-size-lg);">
+                        🔍 Scraping and analyzing job posting...
+                    </p>
+                    <p style="margin-top: var(--spacing-xs); color: #0c5460;">
+                        <small>This usually takes 10-15 seconds. Please don't close this page.</small>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">How it works</h3>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li>Enter the URL of a job posting</li>
+                <li>The system will scrape the page content</li>
+                <li>Claude AI will extract company, title, location, compensation, and requirements</li>
+                <li>The job will be saved to your database</li>
+            </ol>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Enhanced loading state for job scraping
+document.getElementById('addJobForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const urlInput = this.querySelector('input[name="url"]');
+    
+    // Check if URL is entered
+    if (!urlInput.value || urlInput.value.trim() === '') {
+        return; // Let browser validation handle it
+    }
+    
+    // Disable button with clear visual feedback
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
+    submitBtn.textContent = '⏳ Processing...';
+    
+    // Show loading indicator with prominent styling
+    loadingIndicator.style.display = 'block';
+    
+    // Scroll to show the loading message
+    setTimeout(() => {
+        loadingIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+});
+</script>
+{% endblock %}

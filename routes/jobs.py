@@ -1,0 +1,130 @@
+"""
+Job Routes - Job posting management with caching
+"""
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from models import Job
+from services import get_ai_service, ScraperService
+
+bp = Blueprint('jobs', __name__, url_prefix='/jobs')
+
+
+@bp.route('/')
+def list_jobs():
+    """List all jobs with optional search/filter"""
+    search = request.args.get('search', '')
+    filter_by = request.args.get('filter_by', 'all')
+    
+    jobs = Job.get_all(search=search, filter_by=filter_by)
+    
+    return render_template(
+        'jobs.html',
+        jobs=jobs,
+        search=search,
+        filter_by=filter_by
+    )
+
+
+@bp.route('/<int:job_id>')
+def view_job(job_id):
+    """View job details"""
+    job = Job.get_by_id(job_id)
+    
+    if not job:
+        flash('Job not found', 'error')
+        return redirect(url_for('jobs.list_jobs'))
+    
+    return render_template('job_detail.html', job=job)
+
+
+@bp.route('/add', methods=['GET', 'POST'])
+def add_job():
+    """Add a new job posting"""
+    if request.method == 'POST':
+        url = request.form.get('url', '').strip()
+        
+        if not url:
+            flash('URL is required', 'error')
+            return redirect(url_for('jobs.add_job'))
+        
+        # Check if job already exists
+        if Job.exists(url):
+            flash('This job posting has already been added', 'warning')
+            return redirect(url_for('jobs.list_jobs'))
+        
+        try:
+            # Scrape the URL
+            scraper = ScraperService()
+            html_content, text_content = scraper.scrape_job_url(url)
+            
+            # Check content length
+            if len(text_content) < 100:
+                flash(
+                    'Warning: Retrieved very little content. Analysis might not be accurate.',
+                    'warning'
+                )
+            
+            # Extract job details with AI
+            ai = get_ai_service()
+            job_data = ai.extract_job_details(text_content)
+            
+            # Save to database
+            job_id = Job.create(
+                url=url,
+                raw_html=html_content,
+                raw_text=text_content,
+                company_name=job_data['company_name'],
+                job_title=job_data['job_title'],
+                location=job_data['location'],
+                compensation=job_data['compensation'],
+                date_posted=job_data['date_posted'],
+                requirements=job_data['requirements']
+            )
+            
+            flash(
+                f'Job added: {job_data["job_title"]} at {job_data["company_name"]}',
+                'success'
+            )
+            return redirect(url_for('jobs.view_job', job_id=job_id))
+            
+        except Exception as e:
+            error_msg = str(e)
+            if 'Timeout' in error_msg or 'timeout' in error_msg.lower():
+                flash(
+                    'Timeout error: The page took too long to load. '
+                    'This sometimes happens with slow job sites. '
+                    'Try again or add the job details manually.',
+                    'error'
+                )
+            else:
+                flash(f'Error adding job: {error_msg}', 'error')
+            return redirect(url_for('jobs.add_job'))
+    
+    return render_template('add_job.html')
+
+
+@bp.route('/<int:job_id>/delete', methods=['POST'])
+def delete_job(job_id):
+    """Delete a job"""
+    if Job.delete(job_id):
+        flash('Job deleted successfully', 'success')
+    else:
+        flash('Job not found', 'error')
+    
+    return redirect(url_for('jobs.list_jobs'))
+
+@bp.route('/delete-all', methods=['POST'])
+def delete_all_jobs():
+    """Delete all jobs"""
+    from models.database import get_db_context
+    
+    try:
+        with get_db_context() as (conn, cursor):
+            cursor.execute("DELETE FROM jobs")
+            count = cursor.rowcount
+            conn.commit()
+        
+        flash(f'Successfully deleted {count} job(s)', 'success')
+    except Exception as e:
+        flash(f'Error deleting jobs: {str(e)}', 'error')
+    
+    return redirect(url_for('jobs.list_jobs'))

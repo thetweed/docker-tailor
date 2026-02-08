@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, submit_button, cancel_button %}
+
+{% block title %}Edit Education - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Edit Education</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='school',
+                label='School Name',
+                value=edu.school_name,
+                required=true
+            ) }}
+            
+            {{ input(
+                name='degree',
+                label='Degree',
+                value=edu.degree or '',
+                placeholder='e.g., Bachelor of Science'
+            ) }}
+            
+            {{ input(
+                name='field',
+                label='Field of Study',
+                value=edu.field_of_study or '',
+                placeholder='e.g., Computer Science'
+            ) }}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                {{ input(
+                    name='grad_year',
+                    label='Graduation Year',
+                    value=edu.graduation_year or '',
+                    placeholder='e.g., 2020'
+                ) }}
+                
+                {{ input(
+                    name='location',
+                    label='Location',
+                    value=edu.location or ''
+                ) }}
+            </div>
+            
+            <div class="form-group">
+                {{ submit_button('Save Changes') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

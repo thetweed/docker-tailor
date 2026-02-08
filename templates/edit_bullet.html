@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}Edit Bullet - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Edit Bullet Point</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ textarea(
+                name='bullet_text',
+                label='Bullet Text',
+                rows=3,
+                required=true,
+                value=bullet.bullet_text
+            ) }}
+            
+            {{ textarea(
+                name='template_text',
+                label='Template Text',
+                rows=3,
+                value=bullet.template_text,
+                help_text='Generic version with placeholders like [X] or [company]'
+            ) }}
+            
+            {{ input(
+                name='category',
+                label='Category',
+                value=bullet.category or '',
+                placeholder='e.g., technical, leadership'
+            ) }}
+            
+            {{ input(
+                name='tags',
+                label='Tags',
+                value=bullet.tags or '',
+                placeholder='e.g., aws, project-management, cloud',
+                help_text='Comma-separated tags'
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Save Changes') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

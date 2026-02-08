@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, submit_button, cancel_button %}
+
+{% block title %}Edit Skill - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Edit Skill</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='skill_name',
+                label='Skill Name',
+                value=skill.skill_name,
+                required=true
+            ) }}
+            
+            {{ input(
+                name='category',
+                label='Category',
+                value=skill.category or '',
+                placeholder='e.g., programming, soft-skills, tools'
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Save Changes') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

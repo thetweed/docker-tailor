@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}Edit Experience - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Edit Experience</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='company',
+                label='Company Name',
+                value=exp.company_name,
+                required=true
+            ) }}
+            
+            {{ input(
+                name='title',
+                label='Job Title',
+                value=exp.job_title,
+                required=true
+            ) }}
+            
+            {{ input(
+                name='alt_titles',
+                label='Alternate Titles',
+                value=exp.alternate_titles or '',
+                placeholder='e.g., Senior PM, Lead Engineer',
+                help_text='Comma-separated alternate job titles'
+            ) }}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                {{ input(
+                    name='start_date',
+                    label='Start Date',
+                    value=exp.start_date,
+                    placeholder='e.g., Jan 2020'
+                ) }}
+                
+                {{ input(
+                    name='end_date',
+                    label='End Date',
+                    value=exp.end_date,
+                    placeholder='e.g., Present'
+                ) }}
+            </div>
+            
+            {{ input(
+                name='location',
+                label='Location',
+                value=exp.location
+            ) }}
+            
+            {{ textarea(
+                name='description',
+                label='Description',
+                value=exp.description or '',
+                rows=3
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Save Changes') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

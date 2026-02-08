@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import empty_state %}
+
+{% block title %}Saved Analyses - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📁 Saved Tailoring Analyses</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-secondary">
+                ← Back to Tailoring
+            </a>
+            {% if files %}
+            <form method="POST" action="{{ url_for('tailoring.delete_all_analyses') }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger" 
+                        onclick="return confirm('Delete all {{ files|length }} saved analyses? This cannot be undone!')">
+                    🗑️ Delete All
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% if files %}
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Date Created</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td><strong>{{ file.filename }}</strong></td>
+                        <td>{{ file.modified }}</td>
+                        <td>{{ "%.1f"|format(file.size / 1024) }} KB</td>
+                        <td>
+                            <a href="{{ url_for('tailoring.view_analysis', filename=file.filename) }}" 
+                               class="btn btn-small btn-primary">
+                                View
+                            </a>
+                            <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=file.filename) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-danger" 
+                                        onclick="return confirm('Delete this analysis?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <p class="text-muted" style="margin-top: var(--spacing-md);">
+            {{ files|length }} saved analys{{ 'es' if files|length != 1 else 'is' }}
+        </p>
+    {% else %}
+        {{ empty_state(
+            icon='📁',
+            title='No saved analyses yet',
+            message='Run a resume tailoring analysis and save it to see it here.',
+            action_url=url_for('tailoring.tailor_home'),
+            action_text='Tailor Your Resume'
+        ) }}
+    {% endif %}
+{% endblock %}

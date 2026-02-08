@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Tailoring Results - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div>
+        <h1>🎯 Resume Tailoring Analysis</h1>
+        <p class="text-muted" style="margin-top: var(--spacing-sm);">
+            <strong>{{ job.job_title }}</strong> at <strong>{{ job.company_name }}</strong>
+        </p>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-xl);">
+        <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-secondary">
+            ← Back to Tailoring
+        </a>
+        <a href="{{ url_for('jobs.view_job', job_id=job.id) }}" class="btn btn-secondary">
+            View Job Details
+        </a>
+    </div>
+
+    <!-- Quick Reference -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📋 Quick Reference</h2>
+        </div>
+        <div class="card-body">
+            <!-- Recommended Experiences -->
+            <div style="margin-bottom: var(--spacing-xl);">
+                <h3 style="margin-bottom: var(--spacing-md);">Recommended Experiences</h3>
+                
+                {% set exp_ids = [] %}
+                {% for line in recommendations.split('\n') %}
+                    {% if 'Experience ID:' in line %}
+                        {% set exp_id = line.split(':')[1].strip()|int %}
+                        {% if exp_id not in exp_ids %}
+                            {% set _ = exp_ids.append(exp_id) %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if exp_ids %}
+                    {% for exp_id in exp_ids %}
+                        {% if exp_id in experiences %}
+                            <div style="padding: var(--spacing-md); background: var(--color-background-alt); border-radius: var(--border-radius); margin-bottom: var(--spacing-sm);">
+                                <div style="display: flex; align-items: baseline; gap: var(--spacing-sm); flex-wrap: wrap;">
+                                    <span style="background: var(--color-primary); color: white; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);">
+                                        ID {{ exp_id }}
+                                    </span>
+                                    <strong>{{ experiences[exp_id].job_title }}</strong>
+                                    <span>at {{ experiences[exp_id].company_name }}</span>
+                                    <span class="text-muted">
+                                        ({{ experiences[exp_id].start_date }} - {{ experiences[exp_id].end_date }})
+                                    </span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No specific experiences recommended</p>
+                {% endif %}
+            </div>
+
+            <!-- Recommended Bullets -->
+            <div>
+                <h3 style="margin-bottom: var(--spacing-md);">Recommended Bullets</h3>
+                
+                {% set bullet_ids = [] %}
+                {% for line in recommendations.split('\n') %}
+                    {% if 'Bullet ID:' in line %}
+                        {% set bullet_id = line.split(':')[1].strip()|int %}
+                        {% if bullet_id not in bullet_ids %}
+                            {% set _ = bullet_ids.append(bullet_id) %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if bullet_ids %}
+                    {% for bullet_id in bullet_ids %}
+                        {% if bullet_id in bullets %}
+                            <div style="padding: var(--spacing-md); background: var(--color-background-alt); border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
+                                <div style="display: flex; align-items: baseline; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                                    <span style="background: var(--color-success); color: white; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);">
+                                        ID {{ bullet_id }}
+                                    </span>
+                                </div>
+                                <p style="margin-bottom: var(--spacing-sm);">
+                                    {{ bullets[bullet_id].bullet_text }}
+                                </p>
+                                <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                    {% if bullets[bullet_id].category %}
+                                        <span style="background: var(--color-info-light); color: var(--color-info-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                            {{ bullets[bullet_id].category }}
+                                        </span>
+                                    {% endif %}
+                                    {% if bullets[bullet_id].tags %}
+                                        {% for tag in bullets[bullet_id].tags.split(',')[:3] %}
+                                            <span style="background: var(--color-background); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                                {{ tag.strip() }}
+                                            </span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No specific bullets recommended</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Analysis -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🎯 Full Analysis</h2>
+        </div>
+        <div class="card-body">
+            <div style="white-space: pre-wrap; line-height: var(--line-height-relaxed);">
+{{ recommendations }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Action -->
+    <div class="card">
+        <div class="card-body" style="text-align: center;">
+            <p style="margin-bottom: var(--spacing-md);">
+                Want to save this tailoring analysis for later?
+            </p>
+            <form method="POST" action="{{ url_for('tailoring.save_tailor_recommendations', job_id=job.id) }}">
+                <input type="hidden" name="recommendations" value="{{ recommendations }}">
+                <button type="submit" class="btn btn-primary btn-large">
+                    💾 Save Analysis
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

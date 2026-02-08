@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, select, submit_button, cancel_button %}
+
+{% block title %}Add Bullet - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>Add Bullet Point</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ select(
+                name='experience_id',
+                label='Link to Experience (optional)',
+                options=[('', 'Standalone (not linked)')] + [(exp.id, exp.job_title ~ ' at ' ~ exp.company_name) for exp in experiences]
+            ) }}
+            
+            {{ textarea(
+                name='bullet_text',
+                label='Bullet Text',
+                rows=3,
+                required=true,
+                placeholder='Describe your achievement or responsibility'
+            ) }}
+            
+            {{ textarea(
+                name='template_text',
+                label='Template Text',
+                rows=3,
+                help_text='Generic version with placeholders like [X] or [company]'
+            ) }}
+            
+            {{ input(
+                name='category',
+                label='Category',
+                placeholder='e.g., technical, leadership'
+            ) }}
+            
+            {{ input(
+                name='tags',
+                label='Tags',
+                placeholder='e.g., aws, project-management, cloud',
+                help_text='Comma-separated tags'
+            ) }}
+            
+            <div class="form-group">
+                {{ submit_button('Add Bullet') }}
+                {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

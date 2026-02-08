@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  resume-tailor:
+    build: .
+    container_name: resume-tailor-app
+    ports:
+      - "8080:5000"
+    environment:
+      # Required: Get your API key from https://console.anthropic.com/settings/keys
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Optional: Flask secret key for session encryption
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-change-this-in-production}
+    volumes:
+      # Persist database
+      - ./data:/app/data
+      # Persist uploaded files
+      - ./uploads:/app/uploads
+      # Persist session data
+      - ./flask_session:/app/flask_session
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Import - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>📝 Review Imported Resume</h1>
+    <p class="text-muted" style="margin-top: var(--spacing-sm);">
+        Review the extracted components below. Claude has also provided suggestions for improvements.
+    </p>
+{% endblock %}
+
+{% block content %}
+    <!-- AI Suggestions -->
+    {% if suggestions %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🤖 AI Suggestions & Questions</h2>
+        </div>
+        
+        <!-- Clarifying Questions -->
+        {% if suggestions.clarifying_questions %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h3 style="margin-bottom: var(--spacing-sm);">❓ Clarifying Questions</h3>
+            <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                Answer these to improve your profile:
+            </p>
+            <ul style="margin-left: var(--spacing-lg);">
+                {% for question in suggestions.clarifying_questions %}
+                <li style="margin-bottom: var(--spacing-sm);">{{ question }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Experience Enhancements -->
+        {% if suggestions.experience_suggestions %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h3 style="margin-bottom: var(--spacing-md);">💼 Experience Enhancements</h3>
+            {% for exp_sugg in suggestions.experience_suggestions %}
+            <div style="background: var(--color-background-alt); padding: var(--spacing-md); border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
+                <h4 style="margin-bottom: var(--spacing-sm);">
+                    {{ exp_sugg.company }} - {{ exp_sugg.current_title }}
+                </h4>
+                
+                {% if exp_sugg.alternate_titles %}
+                <div style="margin-bottom: var(--spacing-md);">
+                    <strong>Suggested Alternate Titles:</strong>
+                    <ul style="margin-left: var(--spacing-lg); margin-top: var(--spacing-sm);">
+                        {% for alt_title in exp_sugg.alternate_titles %}
+                        <li>{{ alt_title }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if exp_sugg.questions %}
+                <div>
+                    <strong>Questions:</strong>
+                    <ul style="margin-left: var(--spacing-lg); margin-top: var(--spacing-sm);">
+                        {% for question in exp_sugg.questions %}
+                        <li>{{ question }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Bullet Improvements -->
+        {% if suggestions.bullet_suggestions %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h3 style="margin-bottom: var(--spacing-md);">✨ Bullet Improvements</h3>
+            {% for bullet_sugg in suggestions.bullet_suggestions %}
+            <div style="background: var(--color-background-alt); padding: var(--spacing-md); border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
+                <div style="margin-bottom: var(--spacing-md);">
+                    <strong>Original:</strong>
+                    <p style="margin-top: var(--spacing-xs);">{{ bullet_sugg.original }}</p>
+                </div>
+                <div>
+                    <strong style="color: var(--color-success);">Suggested:</strong>
+                    <p style="margin-top: var(--spacing-xs); margin-bottom: var(--spacing-xs);">
+                        {{ bullet_sugg.improved }}
+                    </p>
+                    <small class="text-muted">{{ bullet_sugg.reason }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Additional Skills -->
+        {% if suggestions.skill_suggestions %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h3 style="margin-bottom: var(--spacing-md);">🎯 Additional Skills to Consider</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                {% for skill in suggestions.skill_suggestions %}
+                <span style="background: var(--color-success-light); color: var(--color-success-dark); padding: var(--spacing-xs) var(--spacing-md); border-radius: var(--border-radius); font-weight: var(--font-weight-medium);">
+                    {{ skill }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Extracted Components Summary -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📋 Extracted Components</h2>
+        </div>
+        <div class="card-body">
+            <p style="font-size: var(--font-size-lg);">
+                Found: 
+                <strong style="color: var(--color-primary);">{{ data.experiences|length }} experience(s)</strong>, 
+                <strong style="color: var(--color-success);">{{ data.bullets|length }} bullet(s)</strong>, 
+                <strong style="color: var(--color-info);">{{ data.skills|length }} skill(s)</strong>, 
+                <strong style="color: var(--color-warning-dark);">{{ data.education|length }} education entry(ies)</strong>
+            </p>
+        </div>
+    </div>
+
+    <!-- Experiences -->
+    {% if data.experiences %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Experiences ({{ data.experiences|length }})</h3>
+        </div>
+        {% for exp in data.experiences %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h4 style="margin-bottom: var(--spacing-xs);">{{ exp.title }}</h4>
+            <p style="margin-bottom: var(--spacing-xs);"><strong>{{ exp.company }}</strong></p>
+            <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
+                {{ exp.start_date }} - {{ exp.end_date }}
+                {% if exp.location %} • {{ exp.location }}{% endif %}
+            </p>
+            {% if exp.description %}
+            <p class="text-muted" style="margin-top: var(--spacing-sm);">{{ exp.description }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Bullets -->
+    {% if data.bullets %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Bullet Points ({{ data.bullets|length }})</h3>
+        </div>
+        {% for bullet in data.bullets %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <p style="margin-bottom: var(--spacing-sm);">• {{ bullet.text }}</p>
+            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                {% if bullet.category %}
+                <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                    {{ bullet.category }}
+                </span>
+                {% endif %}
+                {% if bullet.tags %}
+                <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                    {{ bullet.tags }}
+                </span>
+                {% endif %}
+                {% if bullet.experience_company %}
+                <span class="text-muted" style="font-size: var(--font-size-sm); padding: var(--spacing-xs) 0;">
+                    → {{ bullet.experience_company }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Skills -->
+    {% if data.skills %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Skills ({{ data.skills|length }})</h3>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                {% for skill in data.skills %}
+                <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--border-radius);">
+                    {{ skill.name }} 
+                    <small class="text-muted">({{ skill.category }})</small>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Education -->
+    {% if data.education %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Education ({{ data.education|length }})</h3>
+        </div>
+        {% for edu in data.education %}
+        <div class="card-body" style="border-top: 1px solid var(--color-border);">
+            <h4 style="margin-bottom: var(--spacing-xs);">
+                {{ edu.degree }} in {{ edu.field }}
+            </h4>
+            <p style="margin-bottom: var(--spacing-xs);"><strong>{{ edu.school }}</strong></p>
+            <p class="text-muted" style="font-size: var(--font-size-sm);">
+                {{ edu.graduation_year }}
+                {% if edu.location %} • {{ edu.location }}{% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="card">
+        <div class="card-body" style="text-align: center;">
+            <form method="POST" action="{{ url_for('resume.save_import') }}">
+                <button type="submit" class="btn btn-success btn-large" style="margin-bottom: var(--spacing-md);">
+                    ✅ Save All to Resume Library
+                </button>
+            </form>
+            <a href="{{ url_for('resume.import_resume') }}" class="btn btn-secondary">
+                Cancel & Start Over
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Note -->
+    <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <span class="alert-message">
+            <strong>Note:</strong> After saving, you can edit any component in the Resume Library. 
+            Consider the AI suggestions above when making edits!
+        </span>
+    </div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import empty_state %}
+
+{% block title %}Dashboard - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>📊 Dashboard</h1>
+{% endblock %}
+
+{% block content %}
+    <!-- Pending Suggestions Alert (if any exist) -->
+    {% if total_pending > 0 %}
+    <div class="alert alert-warning" style="margin-bottom: var(--spacing-xl);">
+        <span class="alert-icon">⚠️</span>
+        <span class="alert-message">
+            <strong>You have {{ total_pending }} pending suggestion{{ 's' if total_pending != 1 else '' }} to review!</strong>
+            These AI-generated suggestions can help improve your resume.
+        </span>
+        <a href="{{ url_for('suggestions.view_suggestions') }}" class="btn btn-small btn-warning" style="margin-left: auto;">
+            Review Suggestions →
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: var(--color-primary);">
+                    {{ job_count }}
+                </h2>
+                <p class="text-muted">Jobs Tracked</p>
+                {% if job_count > 0 %}
+                <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-small btn-secondary" style="margin-top: var(--spacing-sm);">
+                    View Jobs
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: var(--color-success);">
+                    {{ exp_count + bullet_count }}
+                </h2>
+                <p class="text-muted">Resume Components</p>
+                <a href="{{ url_for('resume.view_resume') }}" class="btn btn-small btn-secondary" style="margin-top: var(--spacing-sm);">
+                    View Resume
+                </a>
+            </div>
+        </div>
+        
+        <div class="card {% if total_pending > 0 %}pending-alert{% endif %}">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs);" 
+                    class="{% if total_pending > 0 %}text-warning-dark{% else %}text-info{% endif %}">
+                    {{ total_pending }}
+                </h2>
+                <p class="{% if total_pending > 0 %}text-warning-dark{% else %}text-muted{% endif %}" style="margin-bottom: 0;">
+                    Pending Suggestions
+                </p>
+                {% if total_pending > 0 %}
+                <a href="{{ url_for('suggestions.view_suggestions') }}" class="btn btn-small btn-warning" style="margin-top: var(--spacing-sm);">
+                    Review Now
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h2 style="font-size: var(--font-size-3xl); margin-bottom: var(--spacing-xs); color: var(--color-warning-dark);">
+                    {{ saved_analyses_count }}
+                </h2>
+                <p class="text-muted">Saved Analyses</p>
+                {% if saved_analyses_count > 0 %}
+                <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-small btn-secondary" style="margin-top: var(--spacing-sm);">
+                    View Analyses
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="card-title">Recent Jobs</h2>
+                <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-small btn-secondary">
+                    View All →
+                </a>
+            </div>
+        </div>
+        
+        {% if recent_jobs %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Added</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in recent_jobs %}
+                    <tr>
+                        <td><strong>{{ job.company_name }}</strong></td>
+                        <td>{{ job.job_title }}</td>
+                        <td>{{ job.location }}</td>
+                        <td>{{ job.date_added }}</td>
+                        <td>
+                            <div style="display: flex; gap: var(--spacing-xs);">
+                                <a href="{{ url_for('jobs.view_job', job_id=job.id) }}" 
+                                   class="btn btn-small btn-secondary">
+                                    View
+                                </a>
+                                <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;" class="tailor-form-mini">
+                                    <button type="submit" 
+                                            class="btn btn-small btn-primary tailor-btn-mini"
+                                            data-job-title="{{ job.job_title }}">
+                                        ✨ Tailor
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="card-body">
+                {{ empty_state(
+                    icon='📭',
+                    title='No jobs tracked yet',
+                    message='Add your first job to get started with resume tailoring!',
+                    action_url=url_for('jobs.add_job'),
+                    action_text='+ Add Job'
+                ) }}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--spacing-lg);">
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h3 style="margin-bottom: var(--spacing-sm);">🎯 Add New Job</h3>
+                <p class="text-muted" style="margin-bottom: var(--spacing-md); font-size: var(--font-size-sm);">
+                    Start tracking a new job opportunity
+                </p>
+                <a href="{{ url_for('jobs.add_job') }}" class="btn btn-primary" style="width: 100%;">
+                    Add Job
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h3 style="margin-bottom: var(--spacing-sm);">📤 Import Resume</h3>
+                <p class="text-muted" style="margin-bottom: var(--spacing-md); font-size: var(--font-size-sm);">
+                    Upload your resume for AI analysis
+                </p>
+                <a href="{{ url_for('resume.import_resume') }}" class="btn btn-primary" style="width: 100%;">
+                    Import Resume
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <h3 style="margin-bottom: var(--spacing-sm);">✨ Tailor Resume</h3>
+                <p class="text-muted" style="margin-bottom: var(--spacing-md); font-size: var(--font-size-sm);">
+                    Match your resume to a job posting
+                </p>
+                <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-primary" style="width: 100%;">
+                    Tailor Resume
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tailor Resume loading states for dashboard
+document.querySelectorAll('.tailor-form-mini').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const btn = this.querySelector('.tailor-btn-mini');
+        const jobTitle = btn.dataset.jobTitle || 'this job';
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.innerHTML = '⏳';
+        
+        // Show global loading message
+        const loadingMsg = document.createElement('div');
+        loadingMsg.id = 'globalTailorLoading';
+        loadingMsg.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 1.5rem 2rem; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; min-width: 350px;';
+        loadingMsg.innerHTML = `
+            <div class="spinner" style="margin: 0 auto 0.75rem;"></div>
+            <p style="margin: 0; color: #0c5460; font-weight: bold; font-size: 1.1rem;">
+                🤖 Tailoring your resume for ${jobTitle}...
+            </p>
+            <p style="margin: 0.5rem 0 0; color: #0c5460;">
+                Analyzing job requirements and matching to your experience
+            </p>
+            <p style="margin: 0.25rem 0 0; color: #0c5460; font-size: 0.875rem;">
+                <small>This usually takes 10-20 seconds</small>
+            </p>
+        `;
+        document.body.appendChild(loadingMsg);
+    });
+});
+</script>
+{% endblock %}

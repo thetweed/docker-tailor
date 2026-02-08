@@ -1,0 +1,180 @@
+{# Form Component Macros - Reusable form elements #}
+
+{# Text Input Field #}
+{% macro input(name, label, type='text', value='', placeholder='', required=false, help_text='') %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <input 
+        type="{{ type }}"
+        id="{{ name }}"
+        name="{{ name }}"
+        class="form-input"
+        value="{{ value }}"
+        {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+        {% if required %}required{% endif %}
+    >
+    {% if help_text %}
+        <small class="form-help">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Textarea Field #}
+{% macro textarea(name, label, value='', rows=4, placeholder='', required=false, help_text='') %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <textarea 
+        id="{{ name }}"
+        name="{{ name }}"
+        class="form-textarea"
+        rows="{{ rows }}"
+        {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+        {% if required %}required{% endif %}
+    >{{ value }}</textarea>
+    {% if help_text %}
+        <small class="form-help">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Select Dropdown #}
+{% macro select(name, label, options, selected='', required=false, help_text='') %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <select 
+        id="{{ name }}"
+        name="{{ name }}"
+        class="form-select"
+        {% if required %}required{% endif %}
+    >
+        {% for value, text in options %}
+            <option value="{{ value }}" {% if value == selected %}selected{% endif %}>
+                {{ text }}
+            </option>
+        {% endfor %}
+    </select>
+    {% if help_text %}
+        <small class="form-help">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# File Upload #}
+{% macro file_upload(name, label, accept='', required=false, help_text='') %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <input 
+        type="file"
+        id="{{ name }}"
+        name="{{ name }}"
+        class="form-file"
+        {% if accept %}accept="{{ accept }}"{% endif %}
+        {% if required %}required{% endif %}
+    >
+    {% if help_text %}
+        <small class="form-help">{{ help_text }}</small>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Submit Button #}
+{% macro submit_button(text='Submit', variant='primary', size='medium') %}
+<button type="submit" class="btn btn-{{ variant }} btn-{{ size }}">
+    {{ text }}
+</button>
+{% endmacro %}
+
+
+{# Cancel/Back Button #}
+{% macro cancel_button(url, text='Cancel') %}
+<a href="{{ url }}" class="btn btn-secondary">
+    {{ text }}
+</a>
+{% endmacro %}
+
+
+{# Card Component #}
+{% macro card(title='', footer='') %}
+<div class="card">
+    {% if title %}
+        <div class="card-header">
+            <h3 class="card-title">{{ title }}</h3>
+        </div>
+    {% endif %}
+    
+    <div class="card-body">
+        {{ caller() }}
+    </div>
+    
+    {% if footer %}
+        <div class="card-footer">
+            {{ footer }}
+        </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Empty State #}
+{% macro empty_state(icon='📭', title='No items yet', message='', action_url='', action_text='') %}
+<div class="empty-state">
+    <div class="empty-state-icon">{{ icon }}</div>
+    <h3 class="empty-state-title">{{ title }}</h3>
+    {% if message %}
+        <p class="empty-state-message">{{ message }}</p>
+    {% endif %}
+    {% if action_url %}
+        <a href="{{ action_url }}" class="btn btn-primary">
+            {{ action_text }}
+        </a>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Loading Spinner #}
+{% macro loading_spinner(text='Loading...') %}
+<div class="loading-spinner">
+    <div class="spinner"></div>
+    <p>{{ text }}</p>
+</div>
+{% endmacro %}
+
+
+{# Confirmation Modal #}
+{% macro confirm_delete(item_name, form_action) %}
+<div class="modal-overlay" id="deleteModal" style="display: none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <button class="modal-close" onclick="closeModal('deleteModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong>{{ item_name }}</strong>?</p>
+            <p class="text-muted">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <form method="POST" action="{{ form_action }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,150 @@
+"""
+Database Connection Management and Initialization
+"""
+import sqlite3
+from contextlib import contextmanager
+from flask import g, current_app
+
+
+def get_db():
+    """
+    Get database connection for the current request.
+    Connection is stored in Flask's g object and reused within the request.
+    """
+    if 'db' not in g:
+        g.db = sqlite3.connect(
+            current_app.config['DATABASE_NAME'],
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        g.db.row_factory = sqlite3.Row  # Access columns by name
+    return g.db
+
+
+def close_db(e=None):
+    """Close database connection at the end of request"""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+@contextmanager
+def get_db_context():
+    """
+    Context manager for database operations.
+    Ensures connection is always closed and commits/rollbacks are handled.
+    
+    Usage:
+        with get_db_context() as (conn, cursor):
+            cursor.execute("SELECT * FROM jobs")
+            results = cursor.fetchall()
+    """
+    conn = sqlite3.connect(current_app.config['DATABASE_NAME'])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    try:
+        yield conn, cursor
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def init_db():
+    """Initialize all database tables"""
+    conn = sqlite3.connect(current_app.config['DATABASE_NAME'])
+    cursor = conn.cursor()
+    
+    # Jobs table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT UNIQUE NOT NULL,
+            raw_html TEXT,
+            raw_text TEXT,
+            company_name TEXT,
+            job_title TEXT,
+            location TEXT,
+            compensation TEXT,
+            date_posted TEXT,
+            requirements TEXT,
+            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Experiences table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS experiences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_name TEXT NOT NULL,
+            job_title TEXT NOT NULL,
+            alternate_titles TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            location TEXT,
+            description TEXT
+        )
+    ''')
+    
+    # Bullets table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bullets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            experience_id INTEGER,
+            bullet_text TEXT NOT NULL,
+            template_text TEXT,
+            tags TEXT,
+            category TEXT,
+            FOREIGN KEY (experience_id) REFERENCES experiences(id)
+        )
+    ''')
+    
+    # Skills table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS skills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            skill_name TEXT NOT NULL,
+            category TEXT
+        )
+    ''')
+    
+    # Education table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS education (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            school_name TEXT NOT NULL,
+            degree TEXT,
+            field_of_study TEXT,
+            graduation_year TEXT,
+            location TEXT
+        )
+    ''')
+    
+    # Suggestions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS suggestions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            suggestion_type TEXT NOT NULL,
+            component_id INTEGER,
+            original_text TEXT,
+            suggested_text TEXT,
+            reasoning TEXT,
+            status TEXT DEFAULT 'pending',
+            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+    print("✓ Database initialized successfully")
+
+
+def init_app(app):
+    """Register database functions with Flask app"""
+    app.teardown_appcontext(close_db)
+    
+    with app.app_context():
+        init_db()

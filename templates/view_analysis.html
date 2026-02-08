@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ filename }} - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>📄 Tailoring Analysis</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary">
+                ← Back to Saved Analyses
+            </a>
+            <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=filename) }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger" 
+                        onclick="return confirm('Delete this analysis?')">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <!-- File Info -->
+    <div class="card">
+        <div class="card-body">
+            <p><strong>File:</strong> {{ filename }}</p>
+        </div>
+    </div>
+
+    <!-- File Content -->
+    <div class="card">
+        <div class="card-body">
+            <pre style="white-space: pre-wrap; line-height: var(--line-height-relaxed); font-family: var(--font-family); background: var(--color-background-alt); padding: var(--spacing-md); border-radius: var(--border-radius); overflow-x: auto;">{{ content }}</pre>
+        </div>
+    </div>
+{% endblock %}
