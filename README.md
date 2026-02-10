@@ -10,6 +10,8 @@ An AI-powered job application tracking system that helps you manage job postings
 - **AI-Powered Matching**: Get intelligent recommendations on which resume components to use for each job
 - **Smart Suggestions**: Receive AI suggestions for alternate job titles, improved bullet points, and additional skills
 - **Application Tracking**: Keep track of saved job postings and match analyses
+- **Export Profiles**: Create reusable export profiles with rules to transform your resume (rename categories, merge/split skill groups, reorder sections, use alternate titles) and a personal header (name, contact info) — all applied at export time without modifying your source data
+- **Multiple Export Formats**: Export resumes as TXT, Markdown, HTML, DOCX, or PDF
 
 ## 🚀 Quick Start
 
@@ -148,6 +150,31 @@ python app.py
    - **New Skills**: Add implied skills from your experience
 3. Apply, dismiss, or skip each suggestion
 
+### Export Profiles & Rules
+
+Export profiles let you save reusable transformation rules that are applied when exporting your resume, without changing your underlying data.
+
+**Creating a Profile:**
+1. Go to "Resume Library" → "Export" → "Manage Profiles"
+2. Click "Create New Profile" and give it a name/description
+3. Add rules, set a personal header, and optionally mark it as default
+
+**Available Rule Types:**
+- **Rename Category**: Change a skill or bullet category name (e.g., "Soft Skills" → "Skills")
+- **Merge Categories**: Combine multiple categories into one
+- **Split Category**: Break a skill category into sub-groups by selecting individual skills
+- **Section Order**: Control the order sections appear (Experience, Skills, Education)
+- **Use Alternate Title**: Swap in an alternate job title for a specific experience
+
+**Personal Header:**
+Each profile can include contact info (name, email, phone, location, links) that appears at the top of the exported resume. This keeps personal info out of your stored resume components and API calls.
+
+**Exporting with a Profile:**
+1. Go to "Resume Library" → "Export"
+2. Select a profile from the dropdown (or leave blank for default behavior)
+3. Toggle individual rules on/off for this specific export
+4. Choose your components and format, then export
+
 ## 💰 Cost Information
 
 This app uses the Anthropic Claude API. Each operation makes a fresh API call:
@@ -176,10 +203,12 @@ job-tracker/
 │   ├── database.py       # DB connection & initialization
 │   ├── job.py           # Job CRUD operations
 │   ├── resume.py        # Resume components CRUD
-│   └── suggestion.py    # AI suggestions CRUD
+│   ├── suggestion.py    # AI suggestions CRUD
+│   └── export_profile.py # Export profiles & rules CRUD
 │
 ├── services/             # Business logic
 │   ├── ai_service.py    # Claude API integration
+│   ├── export_transform.py # Export rule application engine
 │   └── scraper_service.py # Web scraping (Playwright + requests fallback)
 │
 ├── routes/               # HTTP route handlers
@@ -209,6 +238,7 @@ job-tracker/
 - **AI**: Anthropic Claude API (Haiku 4.5 & Sonnet 4.5)
 - **Web Scraping**: Playwright (headless browser) with requests fallback
 - **Document Parsing**: PyPDF2, python-docx, BeautifulSoup4
+- **Export Generation**: python-docx (DOCX), ReportLab (PDF), Markdown
 
 ### Database Schema
 
@@ -219,6 +249,8 @@ The app uses SQLite with the following tables:
 - `skills` - Skills list
 - `education` - Education history
 - `suggestions` - AI improvement suggestions
+- `export_profiles` - Reusable export profiles with personal header info
+- `export_rules` - Transformation rules belonging to export profiles
 
 All tables are created automatically on first run.
 
