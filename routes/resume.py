@@ -3,10 +3,12 @@ Resume Routes - Resume component management (experiences, bullets, skills, educa
 """
 import json
 from datetime import datetime
+from html import escape as html_escape
 from io import StringIO, BytesIO
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file
-from models import Experience, Bullet, Skill, Education, Suggestion
+from models import Experience, Bullet, Skill, Education, Suggestion, ExportProfile
 from models.database import get_db_context
+from services.export_transform import apply_export_rules
 from services import get_ai_service
 from utils import save_uploaded_file, extract_text_from_file, cleanup_file
 import markdown
@@ -726,6 +728,280 @@ def cleanup_skills_apply():
     return redirect(url_for('resume.view_resume') + '#skills-section')
 
 
+# ============================================================================
+# EXPORT PROFILES
+# ============================================================================
+
+@bp.route('/export/profiles')
+def list_profiles():
+    """List all export profiles"""
+    profiles = ExportProfile.get_all_with_rule_counts()
+    return render_template('export_profiles.html', profiles=profiles)
+
+
+@bp.route('/export/profiles/new', methods=['GET', 'POST'])
+def create_profile():
+    """Create a new export profile"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+
+        if not name:
+            flash('Profile name is required', 'error')
+            return render_template('create_export_profile.html')
+
+        profile_id = ExportProfile.create(name, description)
+        flash(f'Profile "{name}" created!', 'success')
+        return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+    return render_template('create_export_profile.html')
+
+
+@bp.route('/export/profiles/<int:profile_id>/edit', methods=['GET', 'POST'])
+def edit_profile(profile_id):
+    """Edit an export profile and manage its rules"""
+    profile = ExportProfile.get_by_id(profile_id)
+    if not profile:
+        flash('Profile not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+
+        if not name:
+            flash('Profile name is required', 'error')
+        else:
+            ExportProfile.update(profile_id, name, description)
+            flash('Profile updated!', 'success')
+            return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+    rules = ExportProfile.get_rules(profile_id)
+
+    # Parse rule configs and add descriptions for display
+    parsed_rules = []
+    for rule in rules:
+        config = json.loads(rule['config'])
+        parsed_rules.append({
+            'id': rule['id'],
+            'rule_type': rule['rule_type'],
+            'rule_type_label': ExportProfile.RULE_TYPE_LABELS.get(rule['rule_type'], rule['rule_type']),
+            'rule_order': rule['rule_order'],
+            'config': config,
+            'enabled': bool(rule['enabled']),
+            'description': ExportProfile.describe_rule(rule['rule_type'], config),
+        })
+
+    # Gather data for rule config forms
+    with get_db_context() as (conn, cursor):
+        cursor.execute("SELECT DISTINCT category FROM skills WHERE category IS NOT NULL ORDER BY category")
+        skill_categories = [row['category'] for row in cursor.fetchall()]
+
+        cursor.execute("SELECT id, skill_name, category FROM skills ORDER BY category, skill_name")
+        all_skills = cursor.fetchall()
+
+        cursor.execute("SELECT DISTINCT category FROM bullets WHERE category IS NOT NULL ORDER BY category")
+        bullet_categories = [row['category'] for row in cursor.fetchall()]
+
+        cursor.execute("SELECT id, job_title, company_name, alternate_titles FROM experiences ORDER BY id")
+        experiences = cursor.fetchall()
+
+    # Build skills-by-category dict for the split rule form
+    skills_by_category = {}
+    for skill in all_skills:
+        cat = skill['category'] or 'General'
+        if cat not in skills_by_category:
+            skills_by_category[cat] = []
+        skills_by_category[cat].append({'id': skill['id'], 'name': skill['skill_name']})
+
+    # Load header info
+    header_info = ExportProfile.get_header_info(profile_id)
+
+    return render_template(
+        'edit_export_profile.html',
+        profile=profile,
+        rules=parsed_rules,
+        header_info=header_info,
+        skill_categories=skill_categories,
+        bullet_categories=bullet_categories,
+        experiences=experiences,
+        skills_by_category_json=json.dumps(skills_by_category),
+        rule_types=ExportProfile.RULE_TYPES,
+        rule_type_labels=ExportProfile.RULE_TYPE_LABELS,
+    )
+
+
+@bp.route('/export/profiles/<int:profile_id>/header', methods=['POST'])
+def update_header_info(profile_id):
+    """Update the personal header info for a profile"""
+    profile = ExportProfile.get_by_id(profile_id)
+    if not profile:
+        flash('Profile not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    header_info = {
+        'name': request.form.get('header_name', '').strip(),
+        'email': request.form.get('header_email', '').strip(),
+        'phone': request.form.get('header_phone', '').strip(),
+        'location': request.form.get('header_location', '').strip(),
+        'links': request.form.get('header_links', '').strip(),
+    }
+
+    # Remove empty fields so the JSON stays clean
+    header_info = {k: v for k, v in header_info.items() if v}
+
+    ExportProfile.update_header_info(profile_id, header_info)
+    flash('Personal header updated!', 'success')
+    return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+
+@bp.route('/export/profiles/<int:profile_id>/delete', methods=['POST'])
+def delete_profile(profile_id):
+    """Delete an export profile"""
+    profile = ExportProfile.get_by_id(profile_id)
+    if profile:
+        ExportProfile.delete(profile_id)
+        flash(f'Profile "{profile["name"]}" deleted', 'success')
+    else:
+        flash('Profile not found', 'error')
+    return redirect(url_for('resume.list_profiles'))
+
+
+@bp.route('/export/profiles/<int:profile_id>/duplicate', methods=['POST'])
+def duplicate_profile(profile_id):
+    """Duplicate an export profile"""
+    profile = ExportProfile.get_by_id(profile_id)
+    if not profile:
+        flash('Profile not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    new_name = f"{profile['name']} (Copy)"
+    new_id = ExportProfile.duplicate(profile_id, new_name)
+    flash(f'Profile duplicated as "{new_name}"', 'success')
+    return redirect(url_for('resume.edit_profile', profile_id=new_id))
+
+
+@bp.route('/export/profiles/<int:profile_id>/set-default', methods=['POST'])
+def set_default_profile(profile_id):
+    """Set a profile as the default"""
+    profile = ExportProfile.get_by_id(profile_id)
+    if not profile:
+        flash('Profile not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    ExportProfile.set_default(profile_id)
+    flash(f'"{profile["name"]}" set as default profile', 'success')
+    return redirect(url_for('resume.list_profiles'))
+
+
+@bp.route('/export/profiles/<int:profile_id>/clear-default', methods=['POST'])
+def clear_default_profile(profile_id):
+    """Clear default status from a profile"""
+    ExportProfile.clear_default()
+    flash('Default profile cleared', 'success')
+    return redirect(url_for('resume.list_profiles'))
+
+
+@bp.route('/export/profiles/<int:profile_id>/rules/add', methods=['POST'])
+def add_rule(profile_id):
+    """Add a rule to a profile"""
+    rule_type = request.form.get('rule_type', '')
+    if rule_type not in ExportProfile.RULE_TYPES:
+        flash('Invalid rule type', 'error')
+        return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+    # Build config from form data based on rule type
+    config = _build_rule_config(rule_type, request.form)
+    if config is None:
+        flash('Invalid rule configuration', 'error')
+        return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+    ExportProfile.add_rule(profile_id, rule_type, config)
+    flash('Rule added!', 'success')
+    return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+
+@bp.route('/export/profiles/rules/<int:rule_id>/delete', methods=['POST'])
+def delete_rule(rule_id):
+    """Delete a rule"""
+    rule = ExportProfile.get_rule_by_id(rule_id)
+    if not rule:
+        flash('Rule not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    profile_id = rule['profile_id']
+    ExportProfile.delete_rule(rule_id)
+    flash('Rule deleted', 'success')
+    return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+
+@bp.route('/export/profiles/rules/<int:rule_id>/toggle', methods=['POST'])
+def toggle_rule(rule_id):
+    """Toggle a rule's enabled state"""
+    rule = ExportProfile.get_rule_by_id(rule_id)
+    if not rule:
+        flash('Rule not found', 'error')
+        return redirect(url_for('resume.list_profiles'))
+
+    profile_id = rule['profile_id']
+    ExportProfile.toggle_rule(rule_id)
+    return redirect(url_for('resume.edit_profile', profile_id=profile_id))
+
+
+def _build_rule_config(rule_type, form):
+    """Build a config dict from form data based on rule type"""
+    if rule_type == ExportProfile.RULE_RENAME_CATEGORY:
+        target = form.get('rename_target', 'skills')
+        from_name = form.get('rename_from', '').strip()
+        to_name = form.get('rename_to', '').strip()
+        if not from_name or not to_name:
+            return None
+        return {'target': target, 'from_name': from_name, 'to_name': to_name}
+
+    elif rule_type == ExportProfile.RULE_MERGE_CATEGORIES:
+        target = form.get('merge_target', 'skills')
+        source_categories = form.getlist('merge_sources')
+        destination = form.get('merge_destination', '').strip()
+        if not source_categories or not destination:
+            return None
+        return {'target': target, 'source_categories': source_categories,
+                'destination_category': destination}
+
+    elif rule_type == ExportProfile.RULE_SPLIT_CATEGORY:
+        source_category = form.get('split_source', '').strip()
+        # Parse splits: each split has a new_category name and a list of skill_ids
+        splits = []
+        split_count = int(form.get('split_count', 0))
+        for i in range(split_count):
+            new_cat = form.get(f'split_name_{i}', '').strip()
+            skill_ids_str = form.getlist(f'split_skills_{i}')
+            skill_ids = [int(sid) for sid in skill_ids_str if sid.isdigit()]
+            if new_cat and skill_ids:
+                splits.append({'new_category': new_cat, 'skill_ids': skill_ids})
+        if not source_category or not splits:
+            return None
+        return {'target': 'skills', 'source_category': source_category, 'splits': splits}
+
+    elif rule_type == ExportProfile.RULE_SECTION_ORDER:
+        order = form.getlist('section_order')
+        if not order:
+            return None
+        return {'order': order}
+
+    elif rule_type == ExportProfile.RULE_USE_ALTERNATE_TITLE:
+        exp_id_str = form.get('alt_title_exp_id', '')
+        title = form.get('alt_title_value', '').strip()
+        if not exp_id_str.isdigit() or not title:
+            return None
+        return {'experience_id': int(exp_id_str), 'title': title}
+
+    return None
+
+
+# ============================================================================
+# EXPORT
+# ============================================================================
+
 @bp.route('/export')
 def export_select():
     """Show component selection page for resume export"""
@@ -756,12 +1032,33 @@ def export_select():
             bullets_by_exp[exp_id] = []
         bullets_by_exp[exp_id].append(bullet)
 
+    # Load export profiles
+    profiles = ExportProfile.get_all_with_rule_counts()
+    default_profile = ExportProfile.get_default()
+
+    # Build profile rules data for JS (so rule toggles render client-side)
+    profiles_rules_data = {}
+    for profile in profiles:
+        profile_data = ExportProfile.get_profile_with_rules(profile['id'])
+        if profile_data:
+            profiles_rules_data[profile['id']] = [
+                {
+                    'id': r['id'],
+                    'description': ExportProfile.describe_rule(r['rule_type'], r['config']),
+                    'enabled': r['enabled'],
+                }
+                for r in profile_data['rules']
+            ]
+
     return render_template(
         'export_select.html',
         experiences=experiences,
         bullets_by_exp=bullets_by_exp,
         skills=skills,
-        education=education
+        education=education,
+        profiles=profiles,
+        default_profile=default_profile,
+        profiles_rules_json=json.dumps(profiles_rules_data),
     )
 
 
@@ -807,17 +1104,50 @@ def export_generate():
     # Create filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
+    # Apply export profile rules if a profile is selected
+    profile_id = request.form.get('profile_id', '')
+    disabled_rule_ids = request.form.getlist('disabled_rule_ids')
+    disabled_rule_ids = {int(rid) for rid in disabled_rule_ids if rid.isdigit()}
+    section_order = None
+    header_info = None
+
+    if profile_id and profile_id.isdigit():
+        profile_data = ExportProfile.get_profile_with_rules(int(profile_id))
+        if profile_data:
+            # Filter out disabled rules (both profile-disabled and per-export-disabled)
+            active_rules = [
+                r for r in profile_data['rules']
+                if r['enabled'] and r['id'] not in disabled_rule_ids
+            ]
+
+            # Convert Row objects to dicts for transformation
+            exp_dicts = [dict(e) for e in experiences]
+            bullet_dicts = [dict(b) for b in bullets]
+            skill_dicts = [dict(s) for s in skills]
+            edu_dicts = [dict(e) for e in education]
+
+            transformed = apply_export_rules(exp_dicts, bullet_dicts, skill_dicts, edu_dicts, active_rules)
+            experiences = transformed['experiences']
+            bullets = transformed['bullets']
+            skills = transformed['skills']
+            education = transformed['education']
+            section_order = transformed['section_order']
+
+            # Extract personal header info from profile
+            if profile_data.get('header_info'):
+                header_info = profile_data['header_info']
+
     # Generate resume in requested format
     if export_format == 'txt':
-        content_bytes, mimetype, filename = generate_resume_text(experiences, bullets, skills, education, timestamp)
+        content_bytes, mimetype, filename = generate_resume_text(experiences, bullets, skills, education, timestamp, section_order, header_info)
     elif export_format == 'md':
-        content_bytes, mimetype, filename = generate_resume_markdown(experiences, bullets, skills, education, timestamp)
+        content_bytes, mimetype, filename = generate_resume_markdown(experiences, bullets, skills, education, timestamp, section_order, header_info)
     elif export_format == 'html':
-        content_bytes, mimetype, filename = generate_resume_html(experiences, bullets, skills, education, timestamp)
+        content_bytes, mimetype, filename = generate_resume_html(experiences, bullets, skills, education, timestamp, section_order, header_info)
     elif export_format == 'docx':
-        content_bytes, mimetype, filename = generate_resume_docx(experiences, bullets, skills, education, timestamp)
+        content_bytes, mimetype, filename = generate_resume_docx(experiences, bullets, skills, education, timestamp, section_order, header_info)
     elif export_format == 'pdf':
-        content_bytes, mimetype, filename = generate_resume_pdf(experiences, bullets, skills, education, timestamp)
+        content_bytes, mimetype, filename = generate_resume_pdf(experiences, bullets, skills, education, timestamp, section_order, header_info)
     else:
         flash('Invalid export format', 'error')
         return redirect(url_for('resume.export_select'))
@@ -831,21 +1161,40 @@ def export_generate():
     )
 
 
-def generate_resume_text(experiences, bullets, skills, education, timestamp):
+def generate_resume_text(experiences, bullets, skills, education, timestamp, section_order=None, header_info=None):
     """Generate plain text resume from selected components"""
+    if section_order is None:
+        section_order = ['experience', 'skills', 'education']
+
     output = []
     output.append("=" * 60)
-    output.append("RESUME")
+
+    if header_info and header_info.get('name'):
+        output.append(header_info['name'].upper())
+        contact_parts = []
+        if header_info.get('email'):
+            contact_parts.append(header_info['email'])
+        if header_info.get('phone'):
+            contact_parts.append(header_info['phone'])
+        if header_info.get('location'):
+            contact_parts.append(header_info['location'])
+        if contact_parts:
+            output.append(' | '.join(contact_parts))
+        if header_info.get('links'):
+            output.append(header_info['links'])
+    else:
+        output.append("RESUME")
+
     output.append("=" * 60)
     output.append("")
 
-    # Work Experience
-    if experiences:
+    def _render_experience():
+        if not experiences:
+            return
         output.append("WORK EXPERIENCE")
         output.append("-" * 60)
         output.append("")
 
-        # Group bullets by experience
         bullets_by_exp = {}
         for bullet in bullets:
             exp_id = bullet['experience_id']
@@ -865,7 +1214,6 @@ def generate_resume_text(experiences, bullets, skills, education, timestamp):
                 output.append(exp['description'])
                 output.append("")
 
-            # Add bullets for this experience
             if exp['id'] in bullets_by_exp:
                 for bullet in bullets_by_exp[exp['id']]:
                     output.append(f"  • {bullet['bullet_text']}")
@@ -873,13 +1221,13 @@ def generate_resume_text(experiences, bullets, skills, education, timestamp):
 
         output.append("")
 
-    # Skills
-    if skills:
+    def _render_skills():
+        if not skills:
+            return
         output.append("SKILLS")
         output.append("-" * 60)
         output.append("")
 
-        # Group skills by category
         skills_by_cat = {}
         for skill in skills:
             cat = skill['category'] or 'General'
@@ -893,8 +1241,9 @@ def generate_resume_text(experiences, bullets, skills, education, timestamp):
         output.append("")
         output.append("")
 
-    # Education
-    if education:
+    def _render_education():
+        if not education:
+            return
         output.append("EDUCATION")
         output.append("-" * 60)
         output.append("")
@@ -907,9 +1256,16 @@ def generate_resume_text(experiences, bullets, skills, education, timestamp):
                 output.append(f"{edu['location']}")
             output.append("")
 
-    output.append("=" * 60)
-    output.append(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    output.append("=" * 60)
+    section_renderers = {
+        'experience': _render_experience,
+        'skills': _render_skills,
+        'education': _render_education,
+    }
+
+    for section in section_order:
+        renderer = section_renderers.get(section)
+        if renderer:
+            renderer()
 
     content = '\n'.join(output)
     content_bytes = BytesIO(content.encode('utf-8'))
@@ -918,18 +1274,37 @@ def generate_resume_text(experiences, bullets, skills, education, timestamp):
     return content_bytes, 'text/plain', f"resume_{timestamp}.txt"
 
 
-def generate_resume_markdown(experiences, bullets, skills, education, timestamp):
+def generate_resume_markdown(experiences, bullets, skills, education, timestamp, section_order=None, header_info=None):
     """Generate Markdown resume from selected components"""
+    if section_order is None:
+        section_order = ['experience', 'skills', 'education']
+
     output = []
-    output.append("# RESUME")
+
+    if header_info and header_info.get('name'):
+        output.append(f"# {header_info['name']}")
+        contact_parts = []
+        if header_info.get('email'):
+            contact_parts.append(header_info['email'])
+        if header_info.get('phone'):
+            contact_parts.append(header_info['phone'])
+        if header_info.get('location'):
+            contact_parts.append(header_info['location'])
+        if contact_parts:
+            output.append(' | '.join(contact_parts))
+        if header_info.get('links'):
+            output.append(header_info['links'])
+    else:
+        output.append("# RESUME")
+
     output.append("")
 
-    # Work Experience
-    if experiences:
+    def _render_experience():
+        if not experiences:
+            return
         output.append("## WORK EXPERIENCE")
         output.append("")
 
-        # Group bullets by experience
         bullets_by_exp = {}
         for bullet in bullets:
             exp_id = bullet['experience_id']
@@ -949,18 +1324,17 @@ def generate_resume_markdown(experiences, bullets, skills, education, timestamp)
                 output.append(exp['description'])
                 output.append("")
 
-            # Add bullets for this experience
             if exp['id'] in bullets_by_exp:
                 for bullet in bullets_by_exp[exp['id']]:
                     output.append(f"- {bullet['bullet_text']}")
                 output.append("")
 
-    # Skills
-    if skills:
+    def _render_skills():
+        if not skills:
+            return
         output.append("## SKILLS")
         output.append("")
 
-        # Group skills by category
         skills_by_cat = {}
         for skill in skills:
             cat = skill['category'] or 'General'
@@ -972,8 +1346,9 @@ def generate_resume_markdown(experiences, bullets, skills, education, timestamp)
             output.append(f"**{category}:** {', '.join(skill_list)}")
         output.append("")
 
-    # Education
-    if education:
+    def _render_education():
+        if not education:
+            return
         output.append("## EDUCATION")
         output.append("")
 
@@ -985,8 +1360,16 @@ def generate_resume_markdown(experiences, bullets, skills, education, timestamp)
                 output.append(f"*{edu['location']}*")
             output.append("")
 
-    output.append("---")
-    output.append(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+    section_renderers = {
+        'experience': _render_experience,
+        'skills': _render_skills,
+        'education': _render_education,
+    }
+
+    for section in section_order:
+        renderer = section_renderers.get(section)
+        if renderer:
+            renderer()
 
     content = '\n'.join(output)
     content_bytes = BytesIO(content.encode('utf-8'))
@@ -995,8 +1378,11 @@ def generate_resume_markdown(experiences, bullets, skills, education, timestamp)
     return content_bytes, 'text/markdown', f"resume_{timestamp}.md"
 
 
-def generate_resume_html(experiences, bullets, skills, education, timestamp):
+def generate_resume_html(experiences, bullets, skills, education, timestamp, section_order=None, header_info=None):
     """Generate HTML resume from selected components"""
+    if section_order is None:
+        section_order = ['experience', 'skills', 'education']
+
     output = []
     output.append("<!DOCTYPE html>")
     output.append("<html lang='en'>")
@@ -1011,17 +1397,33 @@ def generate_resume_html(experiences, bullets, skills, education, timestamp):
     output.append("        h3 { color: #555; margin-bottom: 5px; }")
     output.append("        .meta { color: #666; font-style: italic; margin: 5px 0; }")
     output.append("        ul { margin: 10px 0; }")
+    output.append("        .header-contact { text-align: center; color: #555; margin: 5px 0; }")
     output.append("        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; color: #666; font-size: 0.9em; }")
     output.append("    </style>")
     output.append("</head>")
     output.append("<body>")
-    output.append("    <h1>RESUME</h1>")
 
-    # Work Experience
-    if experiences:
+    if header_info and header_info.get('name'):
+        output.append(f"    <h1 style='text-align: center;'>{html_escape(header_info['name'])}</h1>")
+        contact_parts = []
+        if header_info.get('email'):
+            contact_parts.append(html_escape(header_info['email']))
+        if header_info.get('phone'):
+            contact_parts.append(html_escape(header_info['phone']))
+        if header_info.get('location'):
+            contact_parts.append(html_escape(header_info['location']))
+        if contact_parts:
+            output.append(f"    <p class='header-contact'>{' | '.join(contact_parts)}</p>")
+        if header_info.get('links'):
+            output.append(f"    <p class='header-contact'>{html_escape(header_info['links'])}</p>")
+    else:
+        output.append("    <h1>RESUME</h1>")
+
+    def _render_experience():
+        if not experiences:
+            return
         output.append("    <h2>WORK EXPERIENCE</h2>")
 
-        # Group bullets by experience
         bullets_by_exp = {}
         for bullet in bullets:
             exp_id = bullet['experience_id']
@@ -1040,18 +1442,17 @@ def generate_resume_html(experiences, bullets, skills, education, timestamp):
             if exp['description']:
                 output.append(f"    <p>{exp['description']}</p>")
 
-            # Add bullets for this experience
             if exp['id'] in bullets_by_exp:
                 output.append("    <ul>")
                 for bullet in bullets_by_exp[exp['id']]:
                     output.append(f"        <li>{bullet['bullet_text']}</li>")
                 output.append("    </ul>")
 
-    # Skills
-    if skills:
+    def _render_skills():
+        if not skills:
+            return
         output.append("    <h2>SKILLS</h2>")
 
-        # Group skills by category
         skills_by_cat = {}
         for skill in skills:
             cat = skill['category'] or 'General'
@@ -1062,8 +1463,9 @@ def generate_resume_html(experiences, bullets, skills, education, timestamp):
         for category, skill_list in skills_by_cat.items():
             output.append(f"    <p><strong>{category}:</strong> {', '.join(skill_list)}</p>")
 
-    # Education
-    if education:
+    def _render_education():
+        if not education:
+            return
         output.append("    <h2>EDUCATION</h2>")
 
         for edu in education:
@@ -1074,7 +1476,17 @@ def generate_resume_html(experiences, bullets, skills, education, timestamp):
                 output.append(f" | {edu['location']}")
             output.append("</div>")
 
-    output.append(f"    <div class='footer'>Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>")
+    section_renderers = {
+        'experience': _render_experience,
+        'skills': _render_skills,
+        'education': _render_education,
+    }
+
+    for section in section_order:
+        renderer = section_renderers.get(section)
+        if renderer:
+            renderer()
+
     output.append("</body>")
     output.append("</html>")
 
@@ -1085,19 +1497,42 @@ def generate_resume_html(experiences, bullets, skills, education, timestamp):
     return content_bytes, 'text/html', f"resume_{timestamp}.html"
 
 
-def generate_resume_docx(experiences, bullets, skills, education, timestamp):
+def generate_resume_docx(experiences, bullets, skills, education, timestamp, section_order=None, header_info=None):
     """Generate DOCX resume from selected components"""
+    if section_order is None:
+        section_order = ['experience', 'skills', 'education']
+
     doc = Document()
 
-    # Title
-    title = doc.add_heading('RESUME', 0)
-    title.alignment = 1  # Center alignment
+    if header_info and header_info.get('name'):
+        title = doc.add_heading(header_info['name'], 0)
+        title.alignment = 1  # Center
 
-    # Work Experience
-    if experiences:
+        contact_parts = []
+        if header_info.get('email'):
+            contact_parts.append(header_info['email'])
+        if header_info.get('phone'):
+            contact_parts.append(header_info['phone'])
+        if header_info.get('location'):
+            contact_parts.append(header_info['location'])
+        if contact_parts:
+            p = doc.add_paragraph()
+            p.alignment = 1
+            p.add_run(' | '.join(contact_parts))
+
+        if header_info.get('links'):
+            p = doc.add_paragraph()
+            p.alignment = 1
+            p.add_run(header_info['links'])
+    else:
+        title = doc.add_heading('RESUME', 0)
+        title.alignment = 1  # Center alignment
+
+    def _render_experience():
+        if not experiences:
+            return
         doc.add_heading('WORK EXPERIENCE', level=1)
 
-        # Group bullets by experience
         bullets_by_exp = {}
         for bullet in bullets:
             exp_id = bullet['experience_id']
@@ -1122,16 +1557,15 @@ def generate_resume_docx(experiences, bullets, skills, education, timestamp):
             if exp['description']:
                 doc.add_paragraph(exp['description'])
 
-            # Add bullets for this experience
             if exp['id'] in bullets_by_exp:
                 for bullet in bullets_by_exp[exp['id']]:
                     doc.add_paragraph(bullet['bullet_text'], style='List Bullet')
 
-    # Skills
-    if skills:
+    def _render_skills():
+        if not skills:
+            return
         doc.add_heading('SKILLS', level=1)
 
-        # Group skills by category
         skills_by_cat = {}
         for skill in skills:
             cat = skill['category'] or 'General'
@@ -1145,8 +1579,9 @@ def generate_resume_docx(experiences, bullets, skills, education, timestamp):
             run.bold = True
             p.add_run(', '.join(skill_list))
 
-    # Education
-    if education:
+    def _render_education():
+        if not education:
+            return
         doc.add_heading('EDUCATION', level=1)
 
         for edu in education:
@@ -1163,13 +1598,17 @@ def generate_resume_docx(experiences, bullets, skills, education, timestamp):
                 run2 = p.add_run(f" | {edu['location']}")
                 run2.italic = True
 
-    # Footer
-    doc.add_paragraph()
-    p = doc.add_paragraph()
-    run = p.add_run(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    run.font.size = Pt(9)
-    run.italic = True
-    p.alignment = 1  # Center alignment
+    section_renderers = {
+        'experience': _render_experience,
+        'skills': _render_skills,
+        'education': _render_education,
+    }
+
+    for section in section_order:
+        renderer = section_renderers.get(section)
+        if renderer:
+            renderer()
+
 
     # Save to BytesIO
     content_bytes = BytesIO()
@@ -1179,8 +1618,11 @@ def generate_resume_docx(experiences, bullets, skills, education, timestamp):
     return content_bytes, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', f"resume_{timestamp}.docx"
 
 
-def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
+def generate_resume_pdf(experiences, bullets, skills, education, timestamp, section_order=None, header_info=None):
     """Generate PDF resume from selected components"""
+    if section_order is None:
+        section_order = ['experience', 'skills', 'education']
+
     content_bytes = BytesIO()
     doc = SimpleDocTemplate(content_bytes, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -1192,7 +1634,15 @@ def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
         parent=styles['Heading1'],
         fontSize=24,
         alignment=1,  # Center
-        spaceAfter=30
+        spaceAfter=6
+    )
+
+    contact_style = ParagraphStyle(
+        'ContactInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=1,  # Center
+        spaceAfter=4
     )
 
     heading_style = ParagraphStyle(
@@ -1209,15 +1659,30 @@ def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
         spaceAfter=6
     )
 
-    # Title
-    story.append(Paragraph("RESUME", title_style))
+    # Title / Header
+    if header_info and header_info.get('name'):
+        story.append(Paragraph(header_info['name'], title_style))
+        contact_parts = []
+        if header_info.get('email'):
+            contact_parts.append(header_info['email'])
+        if header_info.get('phone'):
+            contact_parts.append(header_info['phone'])
+        if header_info.get('location'):
+            contact_parts.append(header_info['location'])
+        if contact_parts:
+            story.append(Paragraph(' | '.join(contact_parts), contact_style))
+        if header_info.get('links'):
+            story.append(Paragraph(header_info['links'], contact_style))
+    else:
+        story.append(Paragraph("RESUME", title_style))
+
     story.append(Spacer(1, 0.2*inch))
 
-    # Work Experience
-    if experiences:
+    def _render_experience():
+        if not experiences:
+            return
         story.append(Paragraph("WORK EXPERIENCE", heading_style))
 
-        # Group bullets by experience
         bullets_by_exp = {}
         for bullet in bullets:
             exp_id = bullet['experience_id']
@@ -1239,19 +1704,18 @@ def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
                 story.append(Spacer(1, 0.1*inch))
                 story.append(Paragraph(exp['description'], styles['Normal']))
 
-            # Add bullets for this experience
             if exp['id'] in bullets_by_exp:
                 story.append(Spacer(1, 0.1*inch))
                 for bullet in bullets_by_exp[exp['id']]:
-                    story.append(Paragraph(f"• {bullet['bullet_text']}", styles['Normal']))
+                    story.append(Paragraph(f"&bull; {bullet['bullet_text']}", styles['Normal']))
 
             story.append(Spacer(1, 0.2*inch))
 
-    # Skills
-    if skills:
+    def _render_skills():
+        if not skills:
+            return
         story.append(Paragraph("SKILLS", heading_style))
 
-        # Group skills by category
         skills_by_cat = {}
         for skill in skills:
             cat = skill['category'] or 'General'
@@ -1264,8 +1728,9 @@ def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
 
         story.append(Spacer(1, 0.2*inch))
 
-    # Education
-    if education:
+    def _render_education():
+        if not education:
+            return
         story.append(Paragraph("EDUCATION", heading_style))
 
         for edu in education:
@@ -1279,11 +1744,16 @@ def generate_resume_pdf(experiences, bullets, skills, education, timestamp):
             story.append(Paragraph(grad_location, styles['Normal']))
             story.append(Spacer(1, 0.1*inch))
 
-    # Footer
-    story.append(Spacer(1, 0.3*inch))
-    footer_text = f"<i>Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>"
-    footer_para = Paragraph(footer_text, styles['Normal'])
-    story.append(footer_para)
+    section_renderers = {
+        'experience': _render_experience,
+        'skills': _render_skills,
+        'education': _render_education,
+    }
+
+    for section in section_order:
+        renderer = section_renderers.get(section)
+        if renderer:
+            renderer()
 
     # Build PDF
     doc.build(story)

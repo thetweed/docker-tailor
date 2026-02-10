@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Export Profiles - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>Export Profiles</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('resume.export_select') }}" class="btn btn-secondary">
+                Export Resume
+            </a>
+            <a href="{{ url_for('resume.create_profile') }}" class="btn btn-primary">
+                + New Profile
+            </a>
+        </div>
+    </div>
+    <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+        Export profiles let you save sets of rules that transform your resume during export &mdash; rename categories, reorder sections, pick alternate titles, and more.
+    </p>
+{% endblock %}
+
+{% block content %}
+    {% if profiles %}
+        {% for profile in profiles %}
+        <div class="card" style="margin-bottom: var(--spacing-md);">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h3 style="margin: 0 0 var(--spacing-xs) 0;">
+                            {{ profile.name }}
+                            {% if profile.is_default %}
+                                <span style="background: var(--color-primary); color: white; padding: 2px var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); margin-left: var(--spacing-xs);">
+                                    DEFAULT
+                                </span>
+                            {% endif %}
+                        </h3>
+                        {% if profile.description %}
+                            <p style="color: var(--color-text-muted); margin: 0 0 var(--spacing-sm) 0;">
+                                {{ profile.description }}
+                            </p>
+                        {% endif %}
+                        <span style="color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                            {{ profile.rule_count }} rule{{ 's' if profile.rule_count != 1 else '' }}
+                        </span>
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                        <a href="{{ url_for('resume.edit_profile', profile_id=profile.id) }}" class="btn btn-small btn-secondary">
+                            Edit
+                        </a>
+                        <form method="POST" action="{{ url_for('resume.duplicate_profile', profile_id=profile.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary">Duplicate</button>
+                        </form>
+                        {% if not profile.is_default %}
+                            <form method="POST" action="{{ url_for('resume.set_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-secondary">Set Default</button>
+                            </form>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('resume.clear_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-secondary">Clear Default</button>
+                            </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('resume.delete_profile', profile_id=profile.id) }}" style="display: inline;"
+                              onsubmit="return confirm('Delete profile &quot;{{ profile.name }}&quot;? This cannot be undone.');">
+                            <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body" style="text-align: center; padding: var(--spacing-xl);">
+                <p style="font-size: var(--font-size-lg); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                    No export profiles yet
+                </p>
+                <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">
+                    Create a profile to define rules for transforming your resume during export.
+                </p>
+                <a href="{{ url_for('resume.create_profile') }}" class="btn btn-primary">
+                    + Create Your First Profile
+                </a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}New Export Profile - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <h1>New Export Profile</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            {{ input(
+                name='name',
+                label='Profile Name',
+                placeholder='e.g., Tech Resume, Management Resume',
+                required=true
+            ) }}
+
+            {{ textarea(
+                name='description',
+                label='Description',
+                placeholder='What is this profile for?',
+                rows=2
+            ) }}
+
+            <div class="form-group">
+                {{ submit_button('Create Profile') }}
+                {{ cancel_button(url_for('resume.list_profiles'), 'Cancel') }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

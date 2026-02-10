@@ -4,14 +4,53 @@
 
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-        <h1>📄 Export Resume</h1>
-        <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
-            ← Back to Resume
-        </a>
+        <h1>Export Resume</h1>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('resume.list_profiles') }}" class="btn btn-secondary">
+                Manage Profiles
+            </a>
+            <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+                Back to Resume
+            </a>
+        </div>
     </div>
 {% endblock %}
 
 {% block content %}
+    {# Export Profile Selector #}
+    {% if profiles %}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header">
+            <h3 class="card-title">Export Profile (Optional)</h3>
+            <p style="margin: var(--spacing-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                Apply transformation rules to your resume during export.
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <select id="profileSelect" class="form-select" onchange="onProfileChange(this.value)" form="exportForm" name="profile_id">
+                    <option value="">-- No profile (export as-is) --</option>
+                    {% for profile in profiles %}
+                        <option value="{{ profile.id }}"
+                                {% if default_profile and profile.id == default_profile.id %}selected{% endif %}>
+                            {{ profile.name }}
+                            ({{ profile.rule_count }} rule{{ 's' if profile.rule_count != 1 else '' }})
+                            {% if profile.is_default %} [default]{% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="profileRules" style="display: none; margin-top: var(--spacing-md);">
+                <div style="font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--color-text-muted);">
+                    Rules (uncheck to skip for this export):
+                </div>
+                <div id="profileRulesList"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Select Components to Export</h3>
@@ -22,11 +61,14 @@
         <div class="card-body">
             <form method="POST" action="{{ url_for('resume.export_generate') }}" id="exportForm">
 
+                {# Hidden inputs for disabled rules (populated by JS) #}
+                <div id="disabledRulesInputs"></div>
+
                 {# Work Experience Section #}
                 {% if experiences %}
                 <div style="margin-bottom: var(--spacing-lg);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                        <h3 style="margin: 0;">💼 Work Experience</h3>
+                        <h3 style="margin: 0;">Work Experience</h3>
                         <div>
                             <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('experience')">
                                 Select All
@@ -102,7 +144,7 @@
                 {% if skills %}
                 <div style="margin-bottom: var(--spacing-lg);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                        <h3 style="margin: 0;">🛠️ Skills</h3>
+                        <h3 style="margin: 0;">Skills</h3>
                         <div>
                             <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('skill')">
                                 Select All
@@ -143,7 +185,7 @@
                 {% if education %}
                 <div style="margin-bottom: var(--spacing-lg);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                        <h3 style="margin: 0;">🎓 Education</h3>
+                        <h3 style="margin: 0;">Education</h3>
                         <div>
                             <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('education')">
                                 Select All
@@ -181,27 +223,27 @@
 
                 {# Export Format Selection #}
                 <div style="margin-top: var(--spacing-lg); padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border);">
-                    <h3 style="margin-bottom: var(--spacing-md);">📋 Export Format</h3>
+                    <h3 style="margin-bottom: var(--spacing-md);">Export Format</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-sm); margin-bottom: var(--spacing-lg);">
                         <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
                             <input type="radio" name="export_format" value="txt" checked style="margin-right: var(--spacing-sm);">
-                            <span>📄 Plain Text (.txt)</span>
+                            <span>Plain Text (.txt)</span>
                         </label>
                         <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
                             <input type="radio" name="export_format" value="md" style="margin-right: var(--spacing-sm);">
-                            <span>📝 Markdown (.md)</span>
+                            <span>Markdown (.md)</span>
                         </label>
                         <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
                             <input type="radio" name="export_format" value="html" style="margin-right: var(--spacing-sm);">
-                            <span>🌐 HTML (.html)</span>
+                            <span>HTML (.html)</span>
                         </label>
                         <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
                             <input type="radio" name="export_format" value="docx" style="margin-right: var(--spacing-sm);">
-                            <span>📘 Word (.docx)</span>
+                            <span>Word (.docx)</span>
                         </label>
                         <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
                             <input type="radio" name="export_format" value="pdf" style="margin-right: var(--spacing-sm);">
-                            <span>📕 PDF (.pdf)</span>
+                            <span>PDF (.pdf)</span>
                         </label>
                     </div>
                 </div>
@@ -212,7 +254,7 @@
                         Cancel
                     </a>
                     <button type="submit" class="btn btn-success" id="exportBtn">
-                        📥 Export Selected
+                        Export Selected
                     </button>
                 </div>
             </form>
@@ -223,7 +265,7 @@
     <div class="card">
         <div class="card-body" style="text-align: center; padding: var(--spacing-xl);">
             <p style="font-size: var(--font-size-lg); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
-                📭 No resume components found
+                No resume components found
             </p>
             <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">
                 Add some experiences, skills, or education entries to your resume before exporting.
@@ -238,6 +280,85 @@
 
 {% block extra_js %}
 <script>
+// Profile rules data (embedded from server)
+const profilesRulesData = {{ profiles_rules_json|safe }};
+
+// Show/hide profile rules when a profile is selected
+function onProfileChange(profileId) {
+    const rulesContainer = document.getElementById('profileRules');
+    const rulesList = document.getElementById('profileRulesList');
+    const disabledInputs = document.getElementById('disabledRulesInputs');
+
+    // Clear previous
+    rulesList.innerHTML = '';
+    disabledInputs.innerHTML = '';
+
+    if (!profileId || !profilesRulesData[profileId]) {
+        rulesContainer.style.display = 'none';
+        return;
+    }
+
+    const rules = profilesRulesData[profileId];
+    if (rules.length === 0) {
+        rulesContainer.style.display = 'block';
+        rulesList.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm);">This profile has no rules.</p>';
+        return;
+    }
+
+    rulesContainer.style.display = 'block';
+
+    rules.forEach(rule => {
+        const div = document.createElement('div');
+        div.style.cssText = 'margin-bottom: var(--spacing-xs);';
+
+        const label = document.createElement('label');
+        label.style.cssText = 'display: flex; align-items: center; cursor: pointer; padding: var(--spacing-xs) var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius);';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = rule.enabled;
+        checkbox.dataset.ruleId = rule.id;
+        checkbox.style.cssText = 'margin-right: var(--spacing-sm);';
+        checkbox.addEventListener('change', function() {
+            updateDisabledRulesInputs();
+        });
+
+        const span = document.createElement('span');
+        span.style.cssText = 'font-size: var(--font-size-sm);';
+        span.textContent = rule.description;
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        div.appendChild(label);
+        rulesList.appendChild(div);
+    });
+
+    // Initialize disabled rules inputs
+    updateDisabledRulesInputs();
+}
+
+function updateDisabledRulesInputs() {
+    const container = document.getElementById('disabledRulesInputs');
+    container.innerHTML = '';
+
+    const unchecked = document.querySelectorAll('#profileRulesList input[type="checkbox"]:not(:checked)');
+    unchecked.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'disabled_rule_ids';
+        input.value = cb.dataset.ruleId;
+        container.appendChild(input);
+    });
+}
+
+// Initialize profile rules display if a default profile is pre-selected
+document.addEventListener('DOMContentLoaded', function() {
+    const profileSelect = document.getElementById('profileSelect');
+    if (profileSelect && profileSelect.value) {
+        onProfileChange(profileSelect.value);
+    }
+});
+
 // Select/Deselect all in a section
 function selectAllInSection(section) {
     const checkboxes = document.querySelectorAll(`.${section}-checkbox`);
@@ -271,7 +392,7 @@ function toggleExperienceBullets(expId) {
 
 // Form validation
 document.getElementById('exportForm').addEventListener('submit', function(e) {
-    const anyChecked = document.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+    const anyChecked = document.querySelectorAll('#exportForm input[type="checkbox"][name$="_ids"]:checked').length > 0;
 
     if (!anyChecked) {
         e.preventDefault();
@@ -282,12 +403,12 @@ document.getElementById('exportForm').addEventListener('submit', function(e) {
     // Disable button and show loading state
     const btn = document.getElementById('exportBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ Generating...';
+    btn.textContent = 'Generating...';
 
     // Re-enable button after download completes (file downloads don't reload page)
     setTimeout(function() {
         btn.disabled = false;
-        btn.textContent = '📥 Export Selected';
+        btn.textContent = 'Export Selected';
     }, 2000); // Reset after 2 seconds
 });
 </script>

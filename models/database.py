@@ -136,7 +136,39 @@ def init_db():
             date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
+    # Export profiles table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS export_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            header_info TEXT DEFAULT '{}',
+            is_default INTEGER DEFAULT 0,
+            date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            date_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Add header_info column if missing (migration for existing databases)
+    cursor.execute("PRAGMA table_info(export_profiles)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if 'header_info' not in columns:
+        cursor.execute("ALTER TABLE export_profiles ADD COLUMN header_info TEXT DEFAULT '{}'")
+
+    # Export rules table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS export_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL,
+            rule_type TEXT NOT NULL,
+            rule_order INTEGER DEFAULT 0,
+            config TEXT NOT NULL DEFAULT '{}',
+            enabled INTEGER DEFAULT 1,
+            FOREIGN KEY (profile_id) REFERENCES export_profiles(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
     print("✓ Database initialized successfully")

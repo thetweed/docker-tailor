@@ -1,0 +1,498 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+
+{% block title %}Edit Profile: {{ profile.name }} - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>Edit Profile: {{ profile.name }}</h1>
+        <a href="{{ url_for('resume.list_profiles') }}" class="btn btn-secondary">
+            Back to Profiles
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {# Profile Details #}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header">
+            <h3 class="card-title">Profile Details</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ input(
+                    name='name',
+                    label='Name',
+                    value=profile.name,
+                    required=true
+                ) }}
+
+                {{ textarea(
+                    name='description',
+                    label='Description',
+                    value=profile.description or '',
+                    rows=2
+                ) }}
+
+                <div class="form-group">
+                    {{ submit_button('Save Changes') }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Personal Header #}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header">
+            <h3 class="card-title">Personal Header</h3>
+            <p style="margin: var(--spacing-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                Contact info to display at the top of exported resumes. Leave fields blank to omit them.
+            </p>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('resume.update_header_info', profile_id=profile.id) }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--spacing-md);">
+                    {{ input(
+                        name='header_name',
+                        label='Full Name',
+                        value=header_info.get('name', ''),
+                        placeholder='e.g., Jane Doe'
+                    ) }}
+
+                    {{ input(
+                        name='header_email',
+                        label='Email',
+                        value=header_info.get('email', ''),
+                        placeholder='e.g., jane@example.com'
+                    ) }}
+
+                    {{ input(
+                        name='header_phone',
+                        label='Phone',
+                        value=header_info.get('phone', ''),
+                        placeholder='e.g., (555) 123-4567'
+                    ) }}
+
+                    {{ input(
+                        name='header_location',
+                        label='Location',
+                        value=header_info.get('location', ''),
+                        placeholder='e.g., San Francisco, CA'
+                    ) }}
+                </div>
+
+                {{ input(
+                    name='header_links',
+                    label='Links / Other',
+                    value=header_info.get('links', ''),
+                    placeholder='e.g., linkedin.com/in/janedoe | github.com/janedoe',
+                    help_text='LinkedIn, portfolio, website, etc. Separate multiple with |'
+                ) }}
+
+                <div class="form-group">
+                    {{ submit_button('Save Header') }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Current Rules #}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header">
+            <h3 class="card-title">Rules ({{ rules|length }})</h3>
+            <p style="margin: var(--spacing-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                Rules are applied in order during export. Disabled rules are skipped.
+            </p>
+        </div>
+        <div class="card-body">
+            {% if rules %}
+                {% for rule in rules %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); margin-bottom: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); border-left: 3px solid {% if rule.enabled %}var(--color-success){% else %}var(--color-text-muted){% endif %};">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-xs);">
+                            <span style="background: var(--color-info-light); color: var(--color-info-dark); padding: 2px var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold);">
+                                {{ rule.rule_type_label }}
+                            </span>
+                            <span style="color: var(--color-text-muted); font-size: var(--font-size-xs);">
+                                #{{ rule.rule_order + 1 }}
+                            </span>
+                            {% if not rule.enabled %}
+                                <span style="color: var(--color-text-muted); font-size: var(--font-size-xs); font-style: italic;">
+                                    (disabled)
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div style="{% if not rule.enabled %}opacity: 0.5;{% endif %}">
+                            {{ rule.description }}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-xs); margin-left: var(--spacing-md);">
+                        <form method="POST" action="{{ url_for('resume.toggle_rule', rule_id=rule.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary">
+                                {% if rule.enabled %}Disable{% else %}Enable{% endif %}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('resume.delete_rule', rule_id=rule.id) }}" style="display: inline;"
+                              onsubmit="return confirm('Delete this rule?');">
+                            <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--color-text-muted); text-align: center; padding: var(--spacing-lg);">
+                    No rules yet. Add one below.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Add Rule #}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Add Rule</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label">Rule Type</label>
+                <select id="ruleTypeSelect" class="form-select" onchange="showRuleForm(this.value)">
+                    <option value="">-- Select a rule type --</option>
+                    {% for rt in rule_types %}
+                        <option value="{{ rt }}">{{ rule_type_labels[rt] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Rename Category Form #}
+            <div id="form_rename_category" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                    <input type="hidden" name="rule_type" value="rename_category">
+                    <div class="form-group">
+                        <label class="form-label">Target</label>
+                        <select name="rename_target" class="form-select">
+                            <option value="skills">Skills</option>
+                            <option value="bullets">Bullets</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                        <div class="form-group">
+                            <label class="form-label">From Category</label>
+                            <input type="text" name="rename_from" class="form-input" list="allCategories" required
+                                   placeholder="e.g., Soft Skills">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">To Category</label>
+                            <input type="text" name="rename_to" class="form-input" required
+                                   placeholder="e.g., Skills">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+
+            {# Merge Categories Form #}
+            <div id="form_merge_categories" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                    <input type="hidden" name="rule_type" value="merge_categories">
+                    <div class="form-group">
+                        <label class="form-label">Target</label>
+                        <select name="merge_target" class="form-select" id="mergeTarget" onchange="updateMergeSources()">
+                            <option value="skills">Skills</option>
+                            <option value="bullets">Bullets</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Categories to Merge</label>
+                        <div id="mergeSources" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--spacing-xs);">
+                            {% for cat in skill_categories %}
+                                <label style="display: flex; align-items: center; cursor: pointer;" class="merge-skill-cat">
+                                    <input type="checkbox" name="merge_sources" value="{{ cat }}" style="margin-right: var(--spacing-xs);">
+                                    {{ cat }}
+                                </label>
+                            {% endfor %}
+                            {% for cat in bullet_categories %}
+                                <label style="display: none; align-items: center; cursor: pointer;" class="merge-bullet-cat">
+                                    <input type="checkbox" name="merge_sources" value="{{ cat }}" style="margin-right: var(--spacing-xs);">
+                                    {{ cat }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Destination Category Name</label>
+                        <input type="text" name="merge_destination" class="form-input" required
+                               placeholder="e.g., Technical Skills">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+
+            {# Split Category Form #}
+            <div id="form_split_category" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}" id="splitForm">
+                    <input type="hidden" name="rule_type" value="split_category">
+                    <div class="form-group">
+                        <label class="form-label">Source Category</label>
+                        <select name="split_source" class="form-select" id="splitSource" onchange="loadSplitSkills()">
+                            <option value="">-- Select category --</option>
+                            {% for cat in skill_categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="splitGroups">
+                        <p style="color: var(--color-text-muted);">Select a source category to configure splits.</p>
+                    </div>
+                    <input type="hidden" name="split_count" id="splitCount" value="0">
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+
+            {# Section Order Form #}
+            <div id="form_section_order" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                    <input type="hidden" name="rule_type" value="section_order">
+                    <div class="form-group">
+                        <label class="form-label">Drag to reorder sections (top = first in resume)</label>
+                        <div id="sectionOrderList" style="display: flex; flex-direction: column; gap: var(--spacing-xs);">
+                            <div class="section-order-item" data-section="experience" style="padding: var(--spacing-sm) var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: move; display: flex; align-items: center; gap: var(--spacing-sm);">
+                                <span style="color: var(--color-text-muted);">&#x2630;</span>
+                                <span>Experience</span>
+                                <input type="hidden" name="section_order" value="experience">
+                            </div>
+                            <div class="section-order-item" data-section="skills" style="padding: var(--spacing-sm) var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: move; display: flex; align-items: center; gap: var(--spacing-sm);">
+                                <span style="color: var(--color-text-muted);">&#x2630;</span>
+                                <span>Skills</span>
+                                <input type="hidden" name="section_order" value="skills">
+                            </div>
+                            <div class="section-order-item" data-section="education" style="padding: var(--spacing-sm) var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: move; display: flex; align-items: center; gap: var(--spacing-sm);">
+                                <span style="color: var(--color-text-muted);">&#x2630;</span>
+                                <span>Education</span>
+                                <input type="hidden" name="section_order" value="education">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+
+            {# Use Alternate Title Form #}
+            <div id="form_use_alternate_title" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                    <input type="hidden" name="rule_type" value="use_alternate_title">
+                    <div class="form-group">
+                        <label class="form-label">Experience</label>
+                        <select name="alt_title_exp_id" class="form-select" id="altTitleExpSelect" onchange="loadAlternateTitles()">
+                            <option value="">-- Select experience --</option>
+                            {% for exp in experiences %}
+                                <option value="{{ exp.id }}"
+                                        data-titles="{{ exp.alternate_titles or '' }}"
+                                        data-primary="{{ exp.job_title }}">
+                                    {{ exp.job_title }} at {{ exp.company_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" id="altTitleOptions" style="display: none;">
+                        <label class="form-label">Title to Use</label>
+                        <div id="altTitleRadios"></div>
+                        <div style="margin-top: var(--spacing-sm);">
+                            <label class="form-label" style="font-size: var(--font-size-sm);">Or enter custom:</label>
+                            <input type="text" name="alt_title_value" id="altTitleCustom" class="form-input"
+                                   placeholder="Custom title...">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# Datalist for category autocomplete #}
+    <datalist id="allCategories">
+        {% for cat in skill_categories %}
+            <option value="{{ cat }}">
+        {% endfor %}
+        {% for cat in bullet_categories %}
+            <option value="{{ cat }}">
+        {% endfor %}
+    </datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show the form for the selected rule type
+function showRuleForm(ruleType) {
+    document.querySelectorAll('.rule-form').forEach(f => f.style.display = 'none');
+    if (ruleType) {
+        const form = document.getElementById('form_' + ruleType);
+        if (form) form.style.display = 'block';
+    }
+}
+
+// Toggle merge sources between skill and bullet categories
+function updateMergeSources() {
+    const target = document.getElementById('mergeTarget').value;
+    document.querySelectorAll('.merge-skill-cat').forEach(el => {
+        el.style.display = target === 'skills' ? 'flex' : 'none';
+        el.querySelector('input').checked = false;
+    });
+    document.querySelectorAll('.merge-bullet-cat').forEach(el => {
+        el.style.display = target === 'bullets' ? 'flex' : 'none';
+        el.querySelector('input').checked = false;
+    });
+}
+
+// Load alternate titles for selected experience
+function loadAlternateTitles() {
+    const select = document.getElementById('altTitleExpSelect');
+    const option = select.options[select.selectedIndex];
+    const container = document.getElementById('altTitleOptions');
+    const radios = document.getElementById('altTitleRadios');
+    const customInput = document.getElementById('altTitleCustom');
+
+    if (!option.value) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    radios.innerHTML = '';
+    customInput.value = '';
+
+    const titles = option.dataset.titles;
+    if (titles) {
+        const titleList = titles.split(',').map(t => t.trim()).filter(t => t);
+        titleList.forEach(title => {
+            const label = document.createElement('label');
+            label.style.cssText = 'display: flex; align-items: center; cursor: pointer; margin-bottom: var(--spacing-xs);';
+            label.innerHTML = `<input type="radio" name="alt_title_radio" value="${title}" style="margin-right: var(--spacing-xs);" onchange="document.getElementById('altTitleCustom').value = this.value;"> ${title}`;
+            radios.appendChild(label);
+        });
+    } else {
+        radios.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm);">No alternate titles stored. Enter a custom title below.</p>';
+    }
+}
+
+// Simple drag-and-drop for section order
+(function() {
+    const list = document.getElementById('sectionOrderList');
+    if (!list) return;
+
+    let dragItem = null;
+
+    list.querySelectorAll('.section-order-item').forEach(item => {
+        item.draggable = true;
+
+        item.addEventListener('dragstart', function(e) {
+            dragItem = this;
+            setTimeout(() => this.style.opacity = '0.4', 0);
+        });
+
+        item.addEventListener('dragend', function() {
+            this.style.opacity = '1';
+            dragItem = null;
+        });
+
+        item.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        item.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (dragItem !== this) {
+                const items = [...list.children];
+                const fromIdx = items.indexOf(dragItem);
+                const toIdx = items.indexOf(this);
+                if (fromIdx < toIdx) {
+                    list.insertBefore(dragItem, this.nextSibling);
+                } else {
+                    list.insertBefore(dragItem, this);
+                }
+            }
+        });
+    });
+})();
+
+// Split category: show skills from the selected category as checkboxes per group
+const skillsByCategory = {{ skills_by_category_json|safe }};
+let splitGroupCount = 0;
+
+function loadSplitSkills() {
+    const source = document.getElementById('splitSource').value;
+    const container = document.getElementById('splitGroups');
+    const countInput = document.getElementById('splitCount');
+    splitGroupCount = 0;
+
+    if (!source || !skillsByCategory[source]) {
+        container.innerHTML = '<p style="color: var(--color-text-muted);">Select a source category to configure splits.</p>';
+        countInput.value = '0';
+        return;
+    }
+
+    const skills = skillsByCategory[source];
+
+    container.innerHTML = `
+        <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); margin-bottom: var(--spacing-md);">
+            Assign skills from "<strong>${source}</strong>" into new sub-categories. Skills not assigned to any group will keep their original category.
+        </p>
+        <div id="splitGroupsContainer"></div>
+        <button type="button" class="btn btn-small btn-secondary" onclick="addSplitGroup()" style="margin-top: var(--spacing-sm);">
+            + Add Group
+        </button>
+    `;
+
+    // Start with two groups
+    addSplitGroup();
+    addSplitGroup();
+}
+
+function addSplitGroup() {
+    const source = document.getElementById('splitSource').value;
+    const skills = skillsByCategory[source] || [];
+    const container = document.getElementById('splitGroupsContainer');
+    const countInput = document.getElementById('splitCount');
+    const idx = splitGroupCount;
+    splitGroupCount++;
+    countInput.value = splitGroupCount;
+
+    const groupDiv = document.createElement('div');
+    groupDiv.style.cssText = 'margin-bottom: var(--spacing-md); padding: var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius);';
+    groupDiv.id = `splitGroup_${idx}`;
+
+    let skillCheckboxes = '';
+    skills.forEach(skill => {
+        skillCheckboxes += `
+            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: var(--spacing-xs);">
+                <input type="checkbox" name="split_skills_${idx}" value="${skill.id}" style="margin-right: var(--spacing-xs);">
+                ${skill.name}
+            </label>
+        `;
+    });
+
+    groupDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+            <strong style="font-size: var(--font-size-sm);">Group ${idx + 1}</strong>
+            <button type="button" class="btn btn-small btn-danger" onclick="removeSplitGroup(${idx})" style="font-size: var(--font-size-xs);">Remove</button>
+        </div>
+        <div class="form-group">
+            <label class="form-label">New Category Name</label>
+            <input type="text" name="split_name_${idx}" class="form-input" placeholder="e.g., Languages" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Skills to Move</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--spacing-xs);">
+                ${skillCheckboxes}
+            </div>
+        </div>
+    `;
+
+    container.appendChild(groupDiv);
+}
+
+function removeSplitGroup(idx) {
+    const group = document.getElementById(`splitGroup_${idx}`);
+    if (group) group.remove();
+}
+</script>
+{% endblock %}
