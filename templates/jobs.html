@@ -101,14 +101,24 @@
     {# Job Results #}
     {% if jobs %}
         <div class="card">
-            <table class="table">
+            <table class="table" id="jobsTable">
                 <thead>
                     <tr>
-                        <th>Company</th>
-                        <th>Title</th>
-                        <th>Location</th>
-                        <th>Compensation</th>
-                        <th>Date Added</th>
+                        <th class="sortable" data-column="0" data-type="text">
+                            Company <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-column="1" data-type="text">
+                            Title <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-column="2" data-type="text">
+                            Location <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-column="3" data-type="text">
+                            Compensation <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-column="4" data-type="date">
+                            Date Added <span class="sort-indicator"></span>
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -169,6 +179,112 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+// Table sorting functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('jobsTable');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th.sortable');
+    let currentSort = { column: null, direction: 'asc' };
+
+    // Load saved sort preference
+    const savedSort = localStorage.getItem('jobs-table-sort');
+    if (savedSort) {
+        try {
+            currentSort = JSON.parse(savedSort);
+        } catch (e) {
+            // Invalid saved data, ignore
+        }
+    }
+
+    function sortTable(columnIndex, dataType) {
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        // Determine sort direction
+        if (currentSort.column === columnIndex) {
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.column = columnIndex;
+            currentSort.direction = 'asc';
+        }
+
+        // Sort rows
+        rows.sort((a, b) => {
+            let aValue = a.children[columnIndex].textContent.trim();
+            let bValue = b.children[columnIndex].textContent.trim();
+
+            // Handle date type
+            if (dataType === 'date') {
+                // Convert date strings to timestamps
+                aValue = aValue === 'N/A' ? 0 : new Date(aValue).getTime();
+                bValue = bValue === 'N/A' ? 0 : new Date(bValue).getTime();
+            } else {
+                // Text comparison (case insensitive)
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
+            }
+
+            if (aValue < bValue) {
+                return currentSort.direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return currentSort.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        // Re-append sorted rows
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Update sort indicators
+        updateSortIndicators();
+
+        // Save preference
+        localStorage.setItem('jobs-table-sort', JSON.stringify(currentSort));
+    }
+
+    function updateSortIndicators() {
+        // Clear all indicators
+        headers.forEach(header => {
+            const indicator = header.querySelector('.sort-indicator');
+            indicator.textContent = '';
+            header.classList.remove('sort-asc', 'sort-desc');
+        });
+
+        // Set active indicator
+        if (currentSort.column !== null) {
+            const activeHeader = table.querySelector(`th[data-column="${currentSort.column}"]`);
+            if (activeHeader) {
+                const indicator = activeHeader.querySelector('.sort-indicator');
+                indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+                activeHeader.classList.add(`sort-${currentSort.direction}`);
+            }
+        }
+    }
+
+    // Add click handlers to headers
+    headers.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', function() {
+            const columnIndex = parseInt(this.dataset.column);
+            const dataType = this.dataset.type;
+            sortTable(columnIndex, dataType);
+        });
+    });
+
+    // Apply saved sort on load
+    if (currentSort.column !== null) {
+        const header = table.querySelector(`th[data-column="${currentSort.column}"]`);
+        if (header) {
+            const dataType = header.dataset.type;
+            sortTable(currentSort.column, dataType);
+        }
+    }
+});
+</script>
+
 <script>
 // Quick add form loading state
 document.getElementById('quickAddForm').addEventListener('submit', function(e) {

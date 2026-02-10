@@ -55,23 +55,27 @@
 
     <!-- Clarifying Questions -->
     {% if suggestions.clarifying_question %}
-    <div class="card" id="questions-section">
+    <div class="card collapsible-section" id="questions-section" data-section="questions">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 class="card-title">❓ Clarifying Questions ({{ suggestions.clarifying_question|length }})</h2>
-                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
-                        Answer these to improve your profile
-                    </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">❓ Clarifying Questions ({{ suggestions.clarifying_question|length }})</h2>
+                        <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                            Answer these to improve your profile
+                        </p>
+                    </div>
+                    <span class="collapse-icon">▼</span>
                 </div>
-                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='clarifying_question') }}">
-                    <button type="submit" class="btn btn-small btn-secondary" 
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='clarifying_question') }}" onclick="event.stopPropagation();">
+                    <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.clarifying_question|length }} questions?')">
                         🗑️ Dismiss All
                     </button>
                 </form>
             </div>
         </div>
+        <div class="collapsible-content">
 
         {% for sugg in suggestions.clarifying_question %}
         <div class="card-body" style="border-top: 1px solid var(--color-border);">
@@ -103,28 +107,33 @@
             </form>
         </div>
         {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <!-- Experience Alternate Titles -->
     {% if suggestions.experience_alternate_titles %}
-    <div class="card" id="titles-section">
+    <div class="card collapsible-section" id="titles-section" data-section="titles">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 class="card-title">💼 Experience Title Variations ({{ suggestions.experience_alternate_titles|length }})</h2>
-                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
-                        Alternate job titles to appeal to different roles
-                    </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">💼 Experience Title Variations ({{ suggestions.experience_alternate_titles|length }})</h2>
+                        <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                            Alternate job titles to appeal to different roles
+                        </p>
+                    </div>
+                    <span class="collapse-icon">▼</span>
                 </div>
-                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='experience_alternate_titles') }}">
-                    <button type="submit" class="btn btn-small btn-secondary" 
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='experience_alternate_titles') }}" onclick="event.stopPropagation();">
+                    <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.experience_alternate_titles|length }} title suggestions?')">
                         🗑️ Dismiss All
                     </button>
                 </form>
             </div>
         </div>
+        <div class="collapsible-content">
 
         <!-- Group by experience -->
         {% set current_exp = namespace(id=None) %}
@@ -163,28 +172,33 @@
                 </div>
             {% endif %}
         {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <!-- Bullet Improvements -->
     {% if suggestions.bullet_improvement %}
-    <div class="card" id="bullets-section">
+    <div class="card collapsible-section" id="bullets-section" data-section="bullets">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 class="card-title">✨ Bullet Point Improvements ({{ suggestions.bullet_improvement|length }})</h2>
-                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
-                        More impactful versions of your bullets
-                    </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">✨ Bullet Point Improvements ({{ suggestions.bullet_improvement|length }})</h2>
+                        <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                            More impactful versions of your bullets
+                        </p>
+                    </div>
+                    <span class="collapse-icon">▼</span>
                 </div>
-                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='bullet_improvement') }}">
-                    <button type="submit" class="btn btn-small btn-secondary" 
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='bullet_improvement') }}" onclick="event.stopPropagation();">
+                    <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.bullet_improvement|length }} bullet improvements?')">
                         🗑️ Dismiss All
                     </button>
                 </form>
             </div>
         </div>
+        <div class="collapsible-content">
         
         {% for sugg in suggestions.bullet_improvement %}
         <div class="card-body" style="border-top: 1px solid var(--color-border);">
@@ -225,28 +239,33 @@
             </div>
         </div>
         {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     <!-- New Skills -->
     {% if suggestions.new_skill %}
-    <div class="card" id="skills-section">
+    <div class="card collapsible-section" id="skills-section" data-section="skills">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 class="card-title">🎯 Suggested Skills ({{ suggestions.new_skill|length }})</h2>
-                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
-                        Skills implied by your experience
-                    </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">🎯 Suggested Skills ({{ suggestions.new_skill|length }})</h2>
+                        <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                            Skills implied by your experience
+                        </p>
+                    </div>
+                    <span class="collapse-icon">▼</span>
                 </div>
-                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_skill') }}">
-                    <button type="submit" class="btn btn-small btn-secondary" 
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_skill') }}" onclick="event.stopPropagation();">
+                    <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.new_skill|length }} skill suggestions?')">
                         🗑️ Dismiss All
                     </button>
                 </form>
             </div>
         </div>
+        <div class="collapsible-content">
 
         <div class="card-body">
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-md);">
@@ -270,28 +289,33 @@
                 {% endfor %}
             </div>
         </div>
+        </div>
     </div>
     {% endif %}
 
     <!-- New Bullets from Questions -->
     {% if suggestions.new_bullet %}
-    <div class="card" id="new-bullets-section">
+    <div class="card collapsible-section" id="new-bullets-section" data-section="new-bullets">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 class="card-title">📝 Suggested Bullet Points ({{ suggestions.new_bullet|length }})</h2>
-                    <p class="text-muted" style="margin-top: var(--spacing-xs);">
-                        Generated from your answers to clarifying questions
-                    </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">📝 Suggested Bullet Points ({{ suggestions.new_bullet|length }})</h2>
+                        <p class="text-muted" style="margin-top: var(--spacing-xs);">
+                            Generated from your answers to clarifying questions
+                        </p>
+                    </div>
+                    <span class="collapse-icon">▼</span>
                 </div>
-                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_bullet') }}">
-                    <button type="submit" class="btn btn-small btn-secondary" 
+                <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_bullet') }}" onclick="event.stopPropagation();">
+                    <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.new_bullet|length }} bullet suggestions?')">
                         🗑️ Dismiss All
                     </button>
                 </form>
             </div>
         </div>
+        <div class="collapsible-content">
 
         {% for sugg in suggestions.new_bullet %}
         <div class="card-body" style="border-top: 1px solid var(--color-border);">
@@ -312,8 +336,51 @@
             </div>
         </div>
         {% endfor %}
+        </div>
     </div>
     {% endif %}
 
     {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Collapsible sections functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.collapsible-section');
+
+    sections.forEach(section => {
+        const toggle = section.querySelector('.collapse-toggle');
+        const content = section.querySelector('.collapsible-content');
+        const icon = section.querySelector('.collapse-icon');
+        const sectionId = section.dataset.section;
+
+        // Load saved state from localStorage
+        const isCollapsed = localStorage.getItem(`section-${sectionId}-collapsed`) === 'true';
+        if (isCollapsed) {
+            content.style.display = 'none';
+            icon.textContent = '▶';
+            section.classList.add('collapsed');
+        }
+
+        // Toggle on click
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isCurrentlyCollapsed = content.style.display === 'none';
+
+            if (isCurrentlyCollapsed) {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+                section.classList.remove('collapsed');
+                localStorage.setItem(`section-${sectionId}-collapsed`, 'false');
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+                section.classList.add('collapsed');
+                localStorage.setItem(`section-${sectionId}-collapsed`, 'true');
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

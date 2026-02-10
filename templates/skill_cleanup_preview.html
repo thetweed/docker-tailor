@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Skill Category Cleanup - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>🧹 Skill Category Cleanup</h1>
+        <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+            ← Back to Resume Library
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">AI-Suggested Category Changes</h3>
+            <p style="margin: var(--spacing-sm) 0 0; color: var(--color-text-muted);">
+                {{ suggestions.summary }}
+            </p>
+        </div>
+        <div class="card-body">
+            {% if suggestions.category_mappings %}
+                {% for mapping in suggestions.category_mappings %}
+                <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); border: 1px solid var(--color-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-md);">
+                        <div style="flex: 1;">
+                            <div style="margin-bottom: var(--spacing-xs);">
+                                <span style="background: #fee; color: #c00; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); text-decoration: line-through;">
+                                    {{ mapping.old_category }}
+                                </span>
+                                <span style="margin: 0 var(--spacing-sm); color: var(--color-text-muted);">→</span>
+                                <span style="background: #efe; color: #060; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-weight: var(--font-weight-medium);">
+                                    {{ mapping.new_category }}
+                                </span>
+                            </div>
+                            <p style="margin: var(--spacing-xs) 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                                {{ mapping.reason }}
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <strong style="font-size: var(--font-size-sm);">Affected skills ({{ mapping.affected_skills|length }}):</strong>
+                        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs); margin-top: var(--spacing-xs);">
+                            {% for skill in mapping.affected_skills %}
+                            <span style="padding: var(--spacing-xs) var(--spacing-sm); background: var(--color-background-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                {{ skill }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-lg); padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border);">
+                    <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                    <form method="POST" action="{{ url_for('resume.cleanup_skills_apply') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-primary">
+                            ✓ Apply Changes
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <p style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
+                    No category changes suggested. Your skill categories look good!
+                </p>
+                <div style="text-align: center;">
+                    <a href="{{ url_for('resume.view_resume') }}" class="btn btn-primary">
+                        Back to Resume Library
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

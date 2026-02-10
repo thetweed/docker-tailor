@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block title %}Export Resume - Job Tracker{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>📄 Export Resume</h1>
+        <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+            ← Back to Resume
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Select Components to Export</h3>
+            <p style="margin: var(--spacing-sm) 0 0; color: var(--color-text-muted);">
+                Choose which experiences, bullets, skills, and education entries to include in your exported resume.
+            </p>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('resume.export_generate') }}" id="exportForm">
+
+                {# Work Experience Section #}
+                {% if experiences %}
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                        <h3 style="margin: 0;">💼 Work Experience</h3>
+                        <div>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('experience')">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="deselectAllInSection('experience')">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    {% for exp in experiences %}
+                    <div class="card" style="margin-bottom: var(--spacing-md); background-color: var(--color-bg-light);">
+                        <div class="card-body">
+                            <div style="margin-bottom: var(--spacing-md);">
+                                <label style="display: flex; align-items: start; cursor: pointer;">
+                                    <input type="checkbox"
+                                           name="experience_ids"
+                                           value="{{ exp.id }}"
+                                           class="experience-checkbox"
+                                           data-exp-id="{{ exp.id }}"
+                                           style="margin-top: 4px; margin-right: var(--spacing-sm);"
+                                           onchange="toggleExperienceBullets(this.dataset.expId)">
+                                    <div>
+                                        <strong>{{ exp.job_title }}</strong> at <strong>{{ exp.company_name }}</strong><br>
+                                        <span style="color: var(--color-text-muted);">
+                                            {{ exp.start_date }} - {{ exp.end_date }}
+                                            {% if exp.location %} | {{ exp.location }}{% endif %}
+                                        </span>
+                                        {% if exp.description %}
+                                        <div style="margin-top: var(--spacing-xs); color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                                            {{ exp.description }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                            </div>
+
+                            {# Bullets for this experience #}
+                            {% if exp.id in bullets_by_exp %}
+                            <div style="margin-left: var(--spacing-lg); padding-left: var(--spacing-md); border-left: 2px solid var(--color-border);">
+                                <div style="margin-bottom: var(--spacing-xs); font-weight: var(--font-weight-bold); color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                                    Bullet Points:
+                                </div>
+                                {% for bullet in bullets_by_exp[exp.id] %}
+                                <div style="margin-bottom: var(--spacing-xs);">
+                                    <label style="display: flex; align-items: start; cursor: pointer;">
+                                        <input type="checkbox"
+                                               name="bullet_ids"
+                                               value="{{ bullet.id }}"
+                                               class="bullet-checkbox bullet-exp-{{ exp.id }}"
+                                               style="margin-top: 4px; margin-right: var(--spacing-sm);">
+                                        <span style="font-size: var(--font-size-sm);">
+                                            {{ bullet.bullet_text }}
+                                            {% if bullet.category or bullet.tags %}
+                                            <span style="color: var(--color-text-muted); font-size: var(--font-size-xs);">
+                                                {% if bullet.category %}[{{ bullet.category }}]{% endif %}
+                                                {% if bullet.tags %} | {{ bullet.tags }}{% endif %}
+                                            </span>
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {# Skills Section #}
+                {% if skills %}
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                        <h3 style="margin: 0;">🛠️ Skills</h3>
+                        <div>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('skill')">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="deselectAllInSection('skill')">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--spacing-sm);">
+                                {% for skill in skills %}
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox"
+                                           name="skill_ids"
+                                           value="{{ skill.id }}"
+                                           class="skill-checkbox"
+                                           style="margin-right: var(--spacing-sm);">
+                                    <span>
+                                        {{ skill.skill_name }}
+                                        {% if skill.category %}
+                                        <span style="color: var(--color-text-muted); font-size: var(--font-size-xs);">
+                                            ({{ skill.category }})
+                                        </span>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Education Section #}
+                {% if education %}
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                        <h3 style="margin: 0;">🎓 Education</h3>
+                        <div>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="selectAllInSection('education')">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="deselectAllInSection('education')">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    {% for edu in education %}
+                    <div class="card" style="margin-bottom: var(--spacing-md);">
+                        <div class="card-body">
+                            <label style="display: flex; align-items: start; cursor: pointer;">
+                                <input type="checkbox"
+                                       name="education_ids"
+                                       value="{{ edu.id }}"
+                                       class="education-checkbox"
+                                       style="margin-top: 4px; margin-right: var(--spacing-sm);">
+                                <div>
+                                    <strong>{{ edu.degree }}</strong>
+                                    {% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}<br>
+                                    <span style="color: var(--color-text-muted);">
+                                        {{ edu.school_name }}
+                                        {% if edu.graduation_year %} | {{ edu.graduation_year }}{% endif %}
+                                        {% if edu.location %} | {{ edu.location }}{% endif %}
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {# Export Format Selection #}
+                <div style="margin-top: var(--spacing-lg); padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border);">
+                    <h3 style="margin-bottom: var(--spacing-md);">📋 Export Format</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-sm); margin-bottom: var(--spacing-lg);">
+                        <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
+                            <input type="radio" name="export_format" value="txt" checked style="margin-right: var(--spacing-sm);">
+                            <span>📄 Plain Text (.txt)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
+                            <input type="radio" name="export_format" value="md" style="margin-right: var(--spacing-sm);">
+                            <span>📝 Markdown (.md)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
+                            <input type="radio" name="export_format" value="html" style="margin-right: var(--spacing-sm);">
+                            <span>🌐 HTML (.html)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
+                            <input type="radio" name="export_format" value="docx" style="margin-right: var(--spacing-sm);">
+                            <span>📘 Word (.docx)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer;">
+                            <input type="radio" name="export_format" value="pdf" style="margin-right: var(--spacing-sm);">
+                            <span>📕 PDF (.pdf)</span>
+                        </label>
+                    </div>
+                </div>
+
+                {# Export Buttons #}
+                <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                    <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-success" id="exportBtn">
+                        📥 Export Selected
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not experiences and not skills and not education %}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: var(--spacing-xl);">
+            <p style="font-size: var(--font-size-lg); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+                📭 No resume components found
+            </p>
+            <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">
+                Add some experiences, skills, or education entries to your resume before exporting.
+            </p>
+            <a href="{{ url_for('resume.view_resume') }}" class="btn btn-primary">
+                Go to Resume Library
+            </a>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Select/Deselect all in a section
+function selectAllInSection(section) {
+    const checkboxes = document.querySelectorAll(`.${section}-checkbox`);
+    checkboxes.forEach(cb => cb.checked = true);
+
+    // If selecting all experiences, also select all their bullets
+    if (section === 'experience') {
+        document.querySelectorAll('.bullet-checkbox').forEach(cb => cb.checked = true);
+    }
+}
+
+function deselectAllInSection(section) {
+    const checkboxes = document.querySelectorAll(`.${section}-checkbox`);
+    checkboxes.forEach(cb => cb.checked = false);
+
+    // If deselecting all experiences, also deselect all their bullets
+    if (section === 'experience') {
+        document.querySelectorAll('.bullet-checkbox').forEach(cb => cb.checked = false);
+    }
+}
+
+// When an experience is checked/unchecked, toggle its bullets
+function toggleExperienceBullets(expId) {
+    const expCheckbox = document.querySelector(`input[name="experience_ids"][value="${expId}"]`);
+    const bulletCheckboxes = document.querySelectorAll(`.bullet-exp-${expId}`);
+
+    bulletCheckboxes.forEach(cb => {
+        cb.checked = expCheckbox.checked;
+    });
+}
+
+// Form validation
+document.getElementById('exportForm').addEventListener('submit', function(e) {
+    const anyChecked = document.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+
+    if (!anyChecked) {
+        e.preventDefault();
+        alert('Please select at least one component to export.');
+        return false;
+    }
+
+    // Disable button and show loading state
+    const btn = document.getElementById('exportBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+
+    // Re-enable button after download completes (file downloads don't reload page)
+    setTimeout(function() {
+        btn.disabled = false;
+        btn.textContent = '📥 Export Selected';
+    }, 2000); // Reset after 2 seconds
+});
+</script>
+{% endblock %}

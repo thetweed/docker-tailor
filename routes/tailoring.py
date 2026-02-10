@@ -6,8 +6,76 @@ from models.database import get_db_context
 from services.ai_service import get_ai_service
 from datetime import datetime
 import os
+import re
 
 bp = Blueprint('tailoring', __name__, url_prefix='/tailor')
+
+
+def enrich_recommendations_with_component_text(recommendations, experiences, bullets):
+    """
+    Enrich the AI recommendations by adding actual component text next to ID references.
+
+    This makes the saved analysis self-contained and easier to use without needing
+    to cross-reference with the resume components.
+
+    Args:
+        recommendations: Raw text from Claude with ID references
+        experiences: List of experience dictionaries
+        bullets: List of bullet dictionaries
+
+    Returns:
+        Enriched recommendations text with component details inline
+    """
+    enriched = recommendations
+
+    # Create lookup dictionaries
+    exp_dict = {exp['id']: exp for exp in experiences}
+    bullet_dict = {b['id']: b for b in bullets}
+
+    # Pattern to find "Experience ID: X" followed by the rest of the entry
+    exp_pattern = r'(- Experience ID: (\d+))'
+
+    def replace_experience(match):
+        full_match = match.group(1)
+        exp_id = int(match.group(2))
+
+        if exp_id in exp_dict:
+            exp = exp_dict[exp_id]
+            enrichment = f"{full_match}\n"
+            enrichment += f"  → {exp['job_title']} at {exp['company_name']}\n"
+            enrichment += f"  → {exp['start_date']} - {exp['end_date']}"
+            if exp['location']:
+                enrichment += f" | {exp['location']}"
+            if exp['description']:
+                enrichment += f"\n  → {exp['description']}"
+            if exp['alternate_titles']:
+                enrichment += f"\n  → Alternate Titles: {exp['alternate_titles']}"
+            return enrichment
+        return full_match
+
+    enriched = re.sub(exp_pattern, replace_experience, enriched)
+
+    # Pattern to find "Bullet ID: X" followed by the rest of the entry
+    bullet_pattern = r'(- Bullet ID: (\d+))'
+
+    def replace_bullet(match):
+        full_match = match.group(1)
+        bullet_id = int(match.group(2))
+
+        if bullet_id in bullet_dict:
+            bullet = bullet_dict[bullet_id]
+            enrichment = f"{full_match}\n"
+            enrichment += f"  → {bullet['bullet_text']}"
+            if bullet['category']:
+                enrichment += f"\n  → Category: {bullet['category']}"
+            if bullet['tags']:
+                enrichment += f" | Tags: {bullet['tags']}"
+            return enrichment
+        return full_match
+
+    enriched = re.sub(bullet_pattern, replace_bullet, enriched)
+
+    return enriched
 
 
 @bp.route('/')
@@ -61,19 +129,24 @@ def run_tailor(job_id):
         recommendations = ai.match_job_to_resume(
             job, experiences, bullets, skills, education
         )
-        
+
+        # Enrich recommendations with actual component text
+        enriched_recommendations = enrich_recommendations_with_component_text(
+            recommendations, experiences, bullets
+        )
+
         # Create lookup dictionaries for template
         exp_dict = {exp['id']: exp for exp in experiences}
         bullet_dict = {b['id']: b for b in bullets}
-        
+
         return render_template(
             'tailor_results.html',
             job=job,
-            recommendations=recommendations,
+            recommendations=enriched_recommendations,
             experiences=exp_dict,
             bullets=bullet_dict
         )
-    
+
     except Exception as e:
         current_app.logger.error(f"Tailoring error: {e}")
         flash(f'Error during analysis: {str(e)}', 'error')
@@ -84,14 +157,26 @@ def run_tailor(job_id):
 def save_tailor_recommendations(job_id):
     """Save tailoring recommendations to a file"""
     recommendations = request.form.get('recommendations', '')
-    
+
     with get_db_context() as (conn, cursor):
         cursor.execute("SELECT company_name, job_title FROM jobs WHERE id = ?", (job_id,))
         job = cursor.fetchone()
-    
+
+        # Fetch resume components for enrichment
+        cursor.execute("SELECT * FROM experiences ORDER BY id")
+        experiences = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM bullets ORDER BY id")
+        bullets = cursor.fetchall()
+
     if not job:
         flash('Job not found', 'error')
         return redirect(url_for('tailoring.tailor_home'))
+
+    # Enrich recommendations with actual component text
+    enriched_recommendations = enrich_recommendations_with_component_text(
+        recommendations, experiences, bullets
+    )
     
     # Create saved analyses directory if it doesn't exist
     save_dir = os.path.join(current_app.root_path, 'saved_analyses')
@@ -113,12 +198,12 @@ def save_tailor_recommendations(job_id):
             f.write(f"Company: {job['company_name']}\n")
             f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             f.write(f"{'='*60}\n\n")
-            f.write(recommendations)
-        
+            f.write(enriched_recommendations)
+
         flash(f'Tailoring analysis saved successfully!', 'success')
     except Exception as e:
         flash(f'Error saving analysis: {str(e)}', 'error')
-    
+
     return redirect(url_for('tailoring.saved_analyses'))
 
 

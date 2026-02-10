@@ -20,7 +20,7 @@ Date Posted: [extract posting date if mentioned, otherwise write "Not specified"
 Requirements: [list the key requirements]
 
 Job Posting Text:
-{text_content[:10000]}
+{text_content[:12000]}
 
 Return ONLY the formatted information above, nothing else."""
     
@@ -218,3 +218,41 @@ Only suggest items that are clearly supported by their answer. If the answer doe
                 summary += f"- {edu['degree']} in {edu['field_of_study']}, {edu['school_name']} ({edu['graduation_year']})\n"
         
         return summary
+
+    @staticmethod
+    def skill_category_cleanup(skills_data):
+        """Prompt for cleaning up and consolidating skill categories"""
+        return f"""You are helping organize skills on a resume. The user has accumulated many skills with various categories, including some redundant or overly specific categories.
+
+CURRENT SKILLS:
+{skills_data}
+
+Your task: Analyze these skills and suggest cleaner, more professional category names. Consolidate redundant categories (like "Tools" and "Project Management Tools" should become just "Tools").
+
+Return ONLY valid JSON in this format:
+{{
+  "category_mappings": [
+    {{
+      "old_category": "AI-suggested",
+      "new_category": "Technical Skills",
+      "reason": "More professional category name",
+      "affected_skills": ["Skill1", "Skill2"]
+    }},
+    {{
+      "old_category": "Project Management Tools",
+      "new_category": "Tools",
+      "reason": "Consolidate into parent category",
+      "affected_skills": ["JIRA", "Asana"]
+    }}
+  ],
+  "summary": "Brief summary of changes"
+}}
+
+Guidelines:
+- Use standard, professional category names (e.g., "Programming Languages", "Tools & Technologies", "Technical Skills", "Soft Skills")
+- Consolidate specific sub-categories into broader parent categories
+- Rename generic or AI-generated categories to more professional names
+- Keep category names concise (1-3 words ideal)
+- Don't create new categories that don't exist - only rename/consolidate existing ones
+
+Return ONLY the JSON, no markdown, no explanations outside the JSON."""

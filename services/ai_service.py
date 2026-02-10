@@ -111,6 +111,27 @@ class AIService:
         result = self._parse_json_response(response)
         return result
 
+    def cleanup_skill_categories(self, skills):
+        """Analyze skills and suggest category consolidation"""
+        # Build skills data string
+        skills_by_category = {}
+        for skill in skills:
+            cat = skill['category'] or 'Uncategorized'
+            if cat not in skills_by_category:
+                skills_by_category[cat] = []
+            skills_by_category[cat].append(skill['skill_name'])
+
+        skills_data = ""
+        for category, skill_list in skills_by_category.items():
+            skills_data += f"\n{category}:\n"
+            for skill_name in skill_list:
+                skills_data += f"  - {skill_name}\n"
+
+        prompt = Prompts.skill_category_cleanup(skills_data)
+        response = self._call_claude(prompt, max_tokens=2000)
+        result = self._parse_json_response(response)
+        return result
+
 
 # Singleton instance
 _ai_service = None

@@ -7,6 +7,9 @@
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1>📚 Resume Component Library</h1>
         <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('resume.export_select') }}" class="btn btn-success">
+                📄 Export Resume
+            </a>
             <a href="{{ url_for('resume.import_resume') }}" class="btn btn-primary">
                 📤 Import Resume
             </a>
@@ -16,17 +19,22 @@
 
 {% block content %}
     <!-- Experiences Section -->
-    <div class="card" id="experiences-section">
+    <div class="card collapsible-section" id="experiences-section" data-section="experiences">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="card-title">Experiences ({{ experiences|length }})</h2>
-                <div style="display: flex; gap: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">💼 Experiences ({{ experiences|length }})</h2>
+                    </div>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm);" onclick="event.stopPropagation();">
                     <a href="{{ url_for('resume.add_experience') }}" class="btn btn-small btn-primary">
                         + Add Experience
                     </a>
                     {% if experiences %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='experiences') }}" style="display: inline;">
-                        <button type="submit" class="btn btn-small btn-danger" 
+                        <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ experiences|length }} experiences? This cannot be undone!')">
                             🗑️ Delete All
                         </button>
@@ -35,7 +43,7 @@
                 </div>
             </div>
         </div>
-        
+        <div class="collapsible-content">
         {% if experiences %}
             {% for exp in experiences %}
             <div class="card-body" id="experience-{{ exp.id }}" style="border-top: 1px solid var(--color-border);">
@@ -74,20 +82,26 @@
                 <p class="text-muted text-center">No experiences added yet.</p>
             </div>
         {% endif %}
+        </div>
     </div>
 
     <!-- Bullets Section -->
-    <div class="card" id="bullets-section">
+    <div class="card collapsible-section" id="bullets-section" data-section="bullets">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="card-title">Bullet Points ({{ bullets|length }})</h2>
-                <div style="display: flex; gap: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">📝 Bullet Points ({{ bullets|length }})</h2>
+                    </div>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm);" onclick="event.stopPropagation();">
                     <a href="{{ url_for('resume.add_bullet') }}" class="btn btn-small btn-primary">
                         + Add Bullet
                     </a>
                     {% if bullets %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='bullets') }}" style="display: inline;">
-                        <button type="submit" class="btn btn-small btn-danger" 
+                        <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ bullets|length }} bullets? This cannot be undone!')">
                             🗑️ Delete All
                         </button>
@@ -96,7 +110,7 @@
                 </div>
             </div>
         </div>
-        
+        <div class="collapsible-content">
         {% if bullets %}
             {% for bullet in bullets %}
             <div class="card-body" id="bullet-{{ bullet.id }}" style="border-top: 1px solid var(--color-border);">
@@ -149,20 +163,29 @@
                 <p class="text-muted text-center">No bullets added yet.</p>
             </div>
         {% endif %}
+        </div>
     </div>
 
     <!-- Skills Section -->
-    <div class="card" id="skills-section">
+    <div class="card collapsible-section" id="skills-section" data-section="skills">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="card-title">Skills ({{ skills|length }})</h2>
-                <div style="display: flex; gap: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">🛠️ Skills ({{ skills|length }})</h2>
+                    </div>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm);" onclick="event.stopPropagation();">
                     <a href="{{ url_for('resume.add_skill') }}" class="btn btn-small btn-primary">
                         + Add Skill
                     </a>
                     {% if skills %}
+                    <a href="{{ url_for('resume.cleanup_skills_preview') }}" class="btn btn-small btn-secondary" title="Use AI to consolidate and clean up skill categories">
+                        🧹 Clean Up Categories
+                    </a>
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='skills') }}" style="display: inline;">
-                        <button type="submit" class="btn btn-small btn-danger" 
+                        <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ skills|length }} skills? This cannot be undone!')">
                             🗑️ Delete All
                         </button>
@@ -171,7 +194,7 @@
                 </div>
             </div>
         </div>
-        
+        <div class="collapsible-content">
         {% if skills %}
             <div class="card-body">
                 {% set current_category = namespace(value='') %}
@@ -210,20 +233,26 @@
                 <p class="text-muted text-center">No skills added yet.</p>
             </div>
         {% endif %}
+        </div>
     </div>
 
     <!-- Education Section -->
-    <div class="card" id="education-section">
+    <div class="card collapsible-section" id="education-section" data-section="education">
         <div class="card-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="card-title">Education ({{ education|length }})</h2>
-                <div style="display: flex; gap: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
+                    <div style="flex: 1;">
+                        <h2 class="card-title">🎓 Education ({{ education|length }})</h2>
+                    </div>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm);" onclick="event.stopPropagation();">
                     <a href="{{ url_for('resume.add_education') }}" class="btn btn-small btn-primary">
                         + Add Education
                     </a>
                     {% if education %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='education') }}" style="display: inline;">
-                        <button type="submit" class="btn btn-small btn-danger" 
+                        <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ education|length }} education entries? This cannot be undone!')">
                             🗑️ Delete All
                         </button>
@@ -232,7 +261,7 @@
                 </div>
             </div>
         </div>
-        
+        <div class="collapsible-content">
         {% if education %}
             {% for edu in education %}
             <div class="card-body" id="education-{{ edu.id }}" style="border-top: 1px solid var(--color-border);">
@@ -265,6 +294,7 @@
                 <p class="text-muted text-center">No education entries added yet.</p>
             </div>
         {% endif %}
+        </div>
     </div>
 
     <!-- Include Delete All Modal -->
@@ -274,12 +304,50 @@
 
 {% block extra_js %}
 <script>
+// Collapsible sections functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.collapsible-section');
+
+    sections.forEach(section => {
+        const toggle = section.querySelector('.collapse-toggle');
+        const content = section.querySelector('.collapsible-content');
+        const icon = section.querySelector('.collapse-icon');
+        const sectionId = section.dataset.section;
+
+        // Load saved state from localStorage
+        const isCollapsed = localStorage.getItem(`resume-section-${sectionId}-collapsed`) === 'true';
+        if (isCollapsed) {
+            content.style.display = 'none';
+            icon.textContent = '▶';
+            section.classList.add('collapsed');
+        }
+
+        // Toggle on click
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isCurrentlyCollapsed = content.style.display === 'none';
+
+            if (isCurrentlyCollapsed) {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+                section.classList.remove('collapsed');
+                localStorage.setItem(`resume-section-${sectionId}-collapsed`, 'false');
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+                section.classList.add('collapsed');
+                localStorage.setItem(`resume-section-${sectionId}-collapsed`, 'true');
+            }
+        });
+    });
+});
+
 // Delete All Modal Functions
 function openDeleteModal() {
     const modal = document.getElementById('deleteAllModal');
     const input = document.getElementById('confirmInput');
     const btn = document.getElementById('confirmDeleteBtn');
-    
+
     if (modal && input && btn) {
         modal.style.display = 'flex';
         input.value = '';
