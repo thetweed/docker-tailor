@@ -108,13 +108,13 @@ python app.py
 ### First-Time Setup
 
 1. **Import Your Resume** (recommended)
-   - Click "Resume Library" → "📤 Import Resume"
+   - Click "Components" → "📤 Import Resume"
    - Upload your resume (PDF, DOCX, or TXT)
    - AI will extract your experiences, bullets, skills, and education
    - Review AI suggestions for improvements
 
 2. **Or Add Components Manually**
-   - Navigate to "Resume Library"
+   - Navigate to "Components"
    - Click "+ Add Experience", "+ Add Bullet", etc.
    - Build your component library piece by piece
 
@@ -155,8 +155,8 @@ python app.py
 Export profiles let you save reusable transformation rules that are applied when exporting your resume, without changing your underlying data.
 
 **Creating a Profile:**
-1. Go to "Resume Library" → "Export" → "Manage Profiles"
-2. Click "Create New Profile" and give it a name/description
+1. Go to "Export" → "+ New Profile"
+2. Give it a name/description
 3. Add rules, set a personal header, and optionally mark it as default
 
 **Available Rule Types:**
@@ -170,7 +170,7 @@ Export profiles let you save reusable transformation rules that are applied when
 Each profile can include contact info (name, email, phone, location, links) that appears at the top of the exported resume. This keeps personal info out of your stored resume components and API calls.
 
 **Exporting with a Profile:**
-1. Go to "Resume Library" → "Export"
+1. Go to "Export" → "Export Resume"
 2. Select a profile from the dropdown (or leave blank for default behavior)
 3. Toggle individual rules on/off for this specific export
 4. Choose your components and format, then export
@@ -214,9 +214,10 @@ job-tracker/
 ├── routes/               # HTTP route handlers
 │   ├── main.py          # Dashboard
 │   ├── jobs.py          # Job management
-│   ├── resume.py        # Resume components
+│   ├── resume.py        # Resume components & import
+│   ├── export.py        # Export, profiles & format generation
 │   ├── suggestions.py   # AI suggestions
-│   └── matching.py      # Job-resume matching
+│   └── tailoring.py     # Job-resume tailoring
 │
 ├── utils/                # Helper functions
 │   ├── prompts.py       # AI prompt templates
