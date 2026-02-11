@@ -24,11 +24,12 @@ def create_app(config_name='default'):
     database.init_app(app)
     
     # Register blueprints
-    from routes import main, jobs, resume, suggestions, tailoring
-    
+    from routes import main, jobs, resume, export, suggestions, tailoring
+
     app.register_blueprint(main.bp)
     app.register_blueprint(jobs.bp)
     app.register_blueprint(resume.bp)
+    app.register_blueprint(export.bp)
     app.register_blueprint(suggestions.bp)
     app.register_blueprint(tailoring.bp)
     

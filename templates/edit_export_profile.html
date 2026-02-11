@@ -6,8 +6,8 @@
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
         <h1>Edit Profile: {{ profile.name }}</h1>
-        <a href="{{ url_for('resume.list_profiles') }}" class="btn btn-secondary">
-            Back to Profiles
+        <a href="{{ url_for('export.export_home') }}" class="btn btn-secondary">
+            ← Back to Export
         </a>
     </div>
 {% endblock %}
@@ -50,7 +50,7 @@
             </p>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('resume.update_header_info', profile_id=profile.id) }}">
+            <form method="POST" action="{{ url_for('export.update_header_info', profile_id=profile.id) }}">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--spacing-md);">
                     {{ input(
                         name='header_name',
@@ -127,12 +127,12 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: var(--spacing-xs); margin-left: var(--spacing-md);">
-                        <form method="POST" action="{{ url_for('resume.toggle_rule', rule_id=rule.id) }}" style="display: inline;">
+                        <form method="POST" action="{{ url_for('export.toggle_rule', rule_id=rule.id) }}" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary">
                                 {% if rule.enabled %}Disable{% else %}Enable{% endif %}
                             </button>
                         </form>
-                        <form method="POST" action="{{ url_for('resume.delete_rule', rule_id=rule.id) }}" style="display: inline;"
+                        <form method="POST" action="{{ url_for('export.delete_rule', rule_id=rule.id) }}" style="display: inline;"
                               onsubmit="return confirm('Delete this rule?');">
                             <button type="submit" class="btn btn-small btn-danger">Delete</button>
                         </form>
@@ -165,7 +165,7 @@
 
             {# Rename Category Form #}
             <div id="form_rename_category" class="rule-form" style="display: none;">
-                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
                     <input type="hidden" name="rule_type" value="rename_category">
                     <div class="form-group">
                         <label class="form-label">Target</label>
@@ -192,7 +192,7 @@
 
             {# Merge Categories Form #}
             <div id="form_merge_categories" class="rule-form" style="display: none;">
-                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
                     <input type="hidden" name="rule_type" value="merge_categories">
                     <div class="form-group">
                         <label class="form-label">Target</label>
@@ -229,7 +229,7 @@
 
             {# Split Category Form #}
             <div id="form_split_category" class="rule-form" style="display: none;">
-                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}" id="splitForm">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}" id="splitForm">
                     <input type="hidden" name="rule_type" value="split_category">
                     <div class="form-group">
                         <label class="form-label">Source Category</label>
@@ -250,7 +250,7 @@
 
             {# Section Order Form #}
             <div id="form_section_order" class="rule-form" style="display: none;">
-                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
                     <input type="hidden" name="rule_type" value="section_order">
                     <div class="form-group">
                         <label class="form-label">Drag to reorder sections (top = first in resume)</label>
@@ -278,7 +278,7 @@
 
             {# Use Alternate Title Form #}
             <div id="form_use_alternate_title" class="rule-form" style="display: none;">
-                <form method="POST" action="{{ url_for('resume.add_rule', profile_id=profile.id) }}">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
                     <input type="hidden" name="rule_type" value="use_alternate_title">
                     <div class="form-group">
                         <label class="form-label">Experience</label>

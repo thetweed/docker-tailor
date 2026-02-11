@@ -6,11 +6,8 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
         <h1>Export Resume</h1>
         <div style="display: flex; gap: var(--spacing-sm);">
-            <a href="{{ url_for('resume.list_profiles') }}" class="btn btn-secondary">
-                Manage Profiles
-            </a>
-            <a href="{{ url_for('resume.view_resume') }}" class="btn btn-secondary">
-                Back to Resume
+            <a href="{{ url_for('export.export_home') }}" class="btn btn-secondary">
+                ← Back to Export
             </a>
         </div>
     </div>
@@ -74,7 +71,7 @@
             </p>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('resume.export_generate') }}" id="exportForm">
+            <form method="POST" action="{{ url_for('export.export_generate') }}" id="exportForm">
 
                 {# Hidden inputs for disabled rules (populated by JS) #}
                 <div id="disabledRulesInputs"></div>

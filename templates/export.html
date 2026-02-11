@@ -1,25 +1,43 @@
 {% extends 'base.html' %}
 
-{% block title %}Export Profiles - Job Tracker{% endblock %}
+{% block title %}Export - Job Tracker{% endblock %}
 
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-        <h1>Export Profiles</h1>
-        <div style="display: flex; gap: var(--spacing-sm);">
-            <a href="{{ url_for('resume.export_select') }}" class="btn btn-secondary">
-                Export Resume
-            </a>
-            <a href="{{ url_for('resume.create_profile') }}" class="btn btn-primary">
-                + New Profile
+        <h1>Export</h1>
+        <a href="{{ url_for('resume.import_resume') }}" class="btn btn-secondary">
+            📤 Import Resume
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {# Primary Export Action #}
+    <div class="card" style="margin-bottom: var(--spacing-lg); border-left: 4px solid var(--color-success);">
+        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin: 0 0 var(--spacing-xs) 0;">📄 Start New Export</h3>
+                <p style="color: var(--color-text-muted); margin: 0;">
+                    Select components, choose a profile, and generate your resume.
+                </p>
+            </div>
+            <a href="{{ url_for('export.export_select') }}" class="btn btn-success" style="white-space: nowrap;">
+                Export Resume →
             </a>
         </div>
+    </div>
+
+    {# Export Profiles Section #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+        <h2 style="margin: 0;">Export Profiles</h2>
+        <a href="{{ url_for('export.create_profile') }}" class="btn btn-primary">
+            + New Profile
+        </a>
     </div>
     <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
         Export profiles let you save sets of rules that transform your resume during export &mdash; rename categories, reorder sections, pick alternate titles, and more.
     </p>
-{% endblock %}
 
-{% block content %}
     {% if profiles %}
         {% for profile in profiles %}
         <div class="card" style="margin-bottom: var(--spacing-md);">
@@ -44,22 +62,22 @@
                         </span>
                     </div>
                     <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
-                        <a href="{{ url_for('resume.edit_profile', profile_id=profile.id) }}" class="btn btn-small btn-secondary">
+                        <a href="{{ url_for('export.edit_profile', profile_id=profile.id) }}" class="btn btn-small btn-secondary">
                             Edit
                         </a>
-                        <form method="POST" action="{{ url_for('resume.duplicate_profile', profile_id=profile.id) }}" style="display: inline;">
+                        <form method="POST" action="{{ url_for('export.duplicate_profile', profile_id=profile.id) }}" style="display: inline;">
                             <button type="submit" class="btn btn-small btn-secondary">Duplicate</button>
                         </form>
                         {% if not profile.is_default %}
-                            <form method="POST" action="{{ url_for('resume.set_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                            <form method="POST" action="{{ url_for('export.set_default_profile', profile_id=profile.id) }}" style="display: inline;">
                                 <button type="submit" class="btn btn-small btn-secondary">Set Default</button>
                             </form>
                         {% else %}
-                            <form method="POST" action="{{ url_for('resume.clear_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                            <form method="POST" action="{{ url_for('export.clear_default_profile', profile_id=profile.id) }}" style="display: inline;">
                                 <button type="submit" class="btn btn-small btn-secondary">Clear Default</button>
                             </form>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('resume.delete_profile', profile_id=profile.id) }}" style="display: inline;"
+                        <form method="POST" action="{{ url_for('export.delete_profile', profile_id=profile.id) }}" style="display: inline;"
                               onsubmit="return confirm('Delete profile &quot;{{ profile.name }}&quot;? This cannot be undone.');">
                             <button type="submit" class="btn btn-small btn-danger">Delete</button>
                         </form>
@@ -77,7 +95,7 @@
                 <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">
                     Create a profile to define rules for transforming your resume during export.
                 </p>
-                <a href="{{ url_for('resume.create_profile') }}" class="btn btn-primary">
+                <a href="{{ url_for('export.create_profile') }}" class="btn btn-primary">
                     + Create Your First Profile
                 </a>
             </div>
