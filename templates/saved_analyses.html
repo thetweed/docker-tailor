@@ -5,67 +5,111 @@
 
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>📁 Saved Tailoring Analyses</h1>
-        <div style="display: flex; gap: var(--spacing-sm);">
-            <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-secondary">
-                ← Back to Tailoring
-            </a>
-            {% if files %}
-            <form method="POST" action="{{ url_for('tailoring.delete_all_analyses') }}" style="display: inline;">
-                <button type="submit" class="btn btn-danger" 
-                        onclick="return confirm('Delete all {{ files|length }} saved analyses? This cannot be undone!')">
-                    🗑️ Delete All
-                </button>
-            </form>
-            {% endif %}
-        </div>
+        <h1>Saved Tailoring Analyses</h1>
+        <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-secondary">
+            &larr; Back to Tailoring
+        </a>
     </div>
 {% endblock %}
 
 {% block content %}
-    {% if files %}
-        <div class="card">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <th>Date Created</th>
-                        <th>Size</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for file in files %}
-                    <tr>
-                        <td><strong>{{ file.filename }}</strong></td>
-                        <td>{{ file.modified }}</td>
-                        <td>{{ "%.1f"|format(file.size / 1024) }} KB</td>
-                        <td>
-                            <a href="{{ url_for('tailoring.view_analysis', filename=file.filename) }}" 
+    {# DB-stored analyses #}
+    {% if db_analyses %}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header">
+            <h3 class="card-title">Tailoring Analyses</h3>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Job</th>
+                    <th>Company</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in db_analyses %}
+                <tr>
+                    <td><strong>{{ analysis.job_title }}</strong></td>
+                    <td>{{ analysis.company_name }}</td>
+                    <td>{{ (analysis.date_created|string)[:16] }}</td>
+                    <td>
+                        <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                            <a href="{{ url_for('tailoring.view_db_analysis', analysis_id=analysis.id) }}"
                                class="btn btn-small btn-primary">
                                 View
                             </a>
-                            <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=file.filename) }}" style="display: inline;">
-                                <button type="submit" class="btn btn-small btn-danger" 
+                            <a href="{{ url_for('resume.export_select', analysis_id=analysis.id) }}"
+                               class="btn btn-small btn-success">
+                                Export
+                            </a>
+                            <form method="POST" action="{{ url_for('tailoring.delete_db_analysis', analysis_id=analysis.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-danger"
                                         onclick="return confirm('Delete this analysis?')">
                                     Delete
                                 </button>
                             </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# Legacy file-based analyses #}
+    {% if files %}
+    <div class="card" style="margin-bottom: var(--spacing-lg);">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title">Legacy Saved Files</h3>
+            <form method="POST" action="{{ url_for('tailoring.delete_all_analyses') }}" style="display: inline;">
+                <button type="submit" class="btn btn-small btn-danger"
+                        onclick="return confirm('Delete all {{ files|length }} legacy file(s)? This cannot be undone!')">
+                    Delete All Files
+                </button>
+            </form>
         </div>
-        
-        <p class="text-muted" style="margin-top: var(--spacing-md);">
-            {{ files|length }} saved analys{{ 'es' if files|length != 1 else 'is' }}
-        </p>
-    {% else %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Date Created</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td><strong>{{ file.filename }}</strong></td>
+                    <td>{{ file.modified }}</td>
+                    <td>{{ "%.1f"|format(file.size / 1024) }} KB</td>
+                    <td>
+                        <a href="{{ url_for('tailoring.view_analysis', filename=file.filename) }}"
+                           class="btn btn-small btn-primary">
+                            View
+                        </a>
+                        <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=file.filename) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-danger"
+                                    onclick="return confirm('Delete this analysis?')">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if not db_analyses and not files %}
         {{ empty_state(
             icon='📁',
             title='No saved analyses yet',
-            message='Run a resume tailoring analysis and save it to see it here.',
+            message='Run a resume tailoring analysis to see it here.',
             action_url=url_for('tailoring.tailor_home'),
             action_text='Tailor Your Resume'
         ) }}

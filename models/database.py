@@ -169,6 +169,19 @@ def init_db():
         )
     ''')
 
+    # Tailor analyses table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tailor_analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            analysis_json TEXT NOT NULL,
+            strategy_text TEXT DEFAULT '',
+            raw_response TEXT DEFAULT '',
+            date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (job_id) REFERENCES jobs(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
     print("✓ Database initialized successfully")

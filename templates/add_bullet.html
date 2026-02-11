@@ -11,11 +11,15 @@
 <div class="card">
     <div class="card-body">
         <form method="POST">
-            {{ select(
-                name='experience_id',
-                label='Link to Experience (optional)',
-                options=[('', 'Standalone (not linked)')] + [(exp.id, exp.job_title ~ ' at ' ~ exp.company_name) for exp in experiences]
-            ) }}
+            <div class="form-group">
+                <label for="experience_id" class="form-label">Link to Experience (optional)</label>
+                <select id="experience_id" name="experience_id" class="form-select">
+                    <option value="">Standalone (not linked)</option>
+                    {% for exp in experiences %}
+                        <option value="{{ exp.id }}">{{ exp.job_title }} at {{ exp.company_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             
             {{ textarea(
                 name='bullet_text',

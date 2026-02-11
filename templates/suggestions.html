@@ -47,9 +47,9 @@
         {{ empty_state(
             icon='🎉',
             title='No pending suggestions!',
-            message='Import a resume to get AI suggestions for improvement.',
-            action_url=url_for('resume.import_resume'),
-            action_text='Import Resume'
+            message='Import a resume or use "Analyze with AI" on the Resume page to get suggestions.',
+            action_url=url_for('resume.view_resume'),
+            action_text='Go to Resume'
         ) }}
     {% else %}
 

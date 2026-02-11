@@ -56,18 +56,45 @@
             </div>
         </div>
         
-        <!-- Section 2: Saved Analyses -->
+        <!-- Section 2: Recent Analyses -->
         <div class="card" style="height: fit-content;">
             <div class="card-header">
-                <h2 class="card-title">📁 Saved Tailoring Analyses</h2>
+                <h2 class="card-title">Recent Analyses</h2>
             </div>
             <div class="card-body">
-                <p class="text-muted" style="margin-bottom: var(--spacing-md);">
-                    View your previously saved resume tailoring analyses.
-                </p>
-                <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary" style="width: 100%;">
-                    View All Saved Analyses →
-                </a>
+                {% if db_analyses %}
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-sm); margin-bottom: var(--spacing-md);">
+                        {% for analysis in db_analyses[:5] %}
+                        <div style="padding: var(--spacing-sm) var(--spacing-md); background: var(--color-background-alt, #f8f9fa); border-radius: var(--border-radius);">
+                            <div style="margin-bottom: var(--spacing-xs);">
+                                <strong>{{ analysis.job_title }}</strong>
+                                <span class="text-muted">at {{ analysis.company_name }}</span>
+                            </div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-sm);">
+                                {{ (analysis.date_created|string)[:16] }}
+                            </div>
+                            <div style="display: flex; gap: var(--spacing-xs);">
+                                <a href="{{ url_for('tailoring.view_db_analysis', analysis_id=analysis.id) }}" class="btn btn-small btn-primary">
+                                    View
+                                </a>
+                                <a href="{{ url_for('resume.export_select', analysis_id=analysis.id) }}" class="btn btn-small btn-success">
+                                    Export
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary" style="width: 100%;">
+                        View All Saved Analyses &rarr;
+                    </a>
+                {% else %}
+                    <p class="text-muted" style="margin-bottom: var(--spacing-md);">
+                        No analyses yet. Select a job and tailor your resume to get started.
+                    </p>
+                    <a href="{{ url_for('tailoring.saved_analyses') }}" class="btn btn-secondary" style="width: 100%;">
+                        View All Saved Analyses &rarr;
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

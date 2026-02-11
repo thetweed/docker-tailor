@@ -6,7 +6,14 @@
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1>📚 Resume Component Library</h1>
-        <div style="display: flex; gap: var(--spacing-sm);">
+        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+            <form method="POST" action="{{ url_for('resume.analyze_resume') }}"
+                  style="display: inline; margin: 0;" id="analyzeForm">
+                <button type="submit" class="btn btn-secondary" id="analyzeBtn"
+                        onclick="return confirm('Run AI analysis on your resume? This will dismiss any existing pending suggestions and generate new ones. Takes about 15-20 seconds.')">
+                    Analyze with AI
+                </button>
+            </form>
             <a href="{{ url_for('resume.export_select') }}" class="btn btn-success">
                 📄 Export Resume
             </a>
@@ -18,6 +25,17 @@
 {% endblock %}
 
 {% block content %}
+    <!-- AI Analysis Loading Indicator -->
+    <div id="analyzeLoading" style="display: none; margin-bottom: var(--spacing-lg); padding: var(--spacing-lg); background: #d1ecf1; border: 1px solid #bee5eb; border-radius: var(--border-radius); text-align: center;">
+        <div class="spinner" style="margin: 0 auto var(--spacing-sm);"></div>
+        <p style="margin: 0; color: #0c5460; font-weight: var(--font-weight-bold);">
+            Analyzing your resume with AI...
+        </p>
+        <p style="margin: var(--spacing-xs) 0 0; color: #0c5460; font-size: var(--font-size-sm);">
+            This usually takes 15-20 seconds
+        </p>
+    </div>
+
     <!-- Experiences Section -->
     <div class="card collapsible-section" id="experiences-section" data-section="experiences">
         <div class="card-header">
@@ -379,6 +397,24 @@ if (deleteModal) {
     deleteModal.addEventListener('click', function(e) {
         if (e.target === this) {
             closeDeleteModal();
+        }
+    });
+}
+
+// AI Analysis loading state
+const analyzeForm = document.getElementById('analyzeForm');
+if (analyzeForm) {
+    analyzeForm.addEventListener('submit', function() {
+        const btn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('analyzeLoading');
+
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.textContent = 'Analyzing...';
+
+        if (loading) {
+            loading.style.display = 'block';
+            loading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     });
 }

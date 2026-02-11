@@ -96,12 +96,17 @@ class AIService:
         return result
     
     def match_job_to_resume(self, job, experiences, bullets, skills, education):
-        """Analyze which resume components match a job posting"""
+        """Analyze which resume components match a job posting.
+
+        Returns a parsed dict with structured analysis data.
+        """
         resume_summary = Prompts.build_resume_summary(
             experiences, bullets, skills, education
         )
         prompt = Prompts.job_matching(job, resume_summary)
-        result = self._call_claude(prompt)
+        response = self._call_claude(prompt)
+        result = self._parse_json_response(response)
+        result['_raw_response'] = response
         return result
     
     def analyze_question_answer(self, question_text, answer):

@@ -172,6 +172,154 @@ def check_education_duplicate(school_name, degree, field_of_study):
         return cursor.fetchone() is not None
 
 
+def _build_parsed_format_from_db():
+    """Load all resume components from DB and convert to the format
+    expected by AIService.get_resume_suggestions().
+
+    Returns:
+        tuple: (parsed_data, experience_map, bullet_map)
+        - parsed_data: dict matching parse_resume() output format
+        - experience_map: {company_name: experience_id}
+        - bullet_map: {bullet_text: bullet_id}
+    """
+    experiences = Experience.get_all()
+    bullets = Bullet.get_all()
+    skills = Skill.get_all()
+    education = Education.get_all()
+
+    experience_map = {}
+    bullet_map = {}
+
+    parsed_experiences = []
+    for exp in experiences:
+        parsed_experiences.append({
+            'company': exp['company_name'],
+            'title': exp['job_title'],
+            'start_date': exp['start_date'] or '',
+            'end_date': exp['end_date'] or '',
+            'location': exp['location'] or '',
+            'description': exp['description'] or ''
+        })
+        experience_map[exp['company_name']] = exp['id']
+
+    parsed_bullets = []
+    for bullet in bullets:
+        parsed_bullets.append({
+            'text': bullet['bullet_text'],
+            'experience_company': bullet['company_name'] or '',
+            'category': bullet['category'] or '',
+            'tags': bullet['tags'] or ''
+        })
+        bullet_map[bullet['bullet_text']] = bullet['id']
+
+    parsed_skills = []
+    for skill in skills:
+        parsed_skills.append({
+            'name': skill['skill_name'],
+            'category': skill['category'] or ''
+        })
+
+    parsed_education = []
+    for edu in education:
+        parsed_education.append({
+            'school': edu['school_name'],
+            'degree': edu['degree'] or '',
+            'field': edu['field_of_study'] or '',
+            'graduation_year': edu['graduation_year'] or '',
+            'location': edu['location'] or ''
+        })
+
+    parsed_data = {
+        'experiences': parsed_experiences,
+        'bullets': parsed_bullets,
+        'skills': parsed_skills,
+        'education': parsed_education
+    }
+
+    return parsed_data, experience_map, bullet_map
+
+
+@bp.route('/analyze', methods=['POST'])
+def analyze_resume():
+    """Run AI suggestion analysis on existing resume components"""
+    try:
+        parsed_data, experience_map, bullet_map = _build_parsed_format_from_db()
+
+        total = (len(parsed_data['experiences']) + len(parsed_data['bullets']) +
+                 len(parsed_data['skills']) + len(parsed_data['education']))
+        if total == 0:
+            flash('No resume components to analyze. Add some first!', 'warning')
+            return redirect(url_for('resume.view_resume'))
+
+        # Dismiss existing pending suggestions before generating new ones
+        for stype in [Suggestion.TYPE_EXPERIENCE_ALT_TITLES,
+                      Suggestion.TYPE_BULLET_IMPROVEMENT,
+                      Suggestion.TYPE_NEW_SKILL,
+                      Suggestion.TYPE_CLARIFYING_QUESTION]:
+            Suggestion.dismiss_all_by_type(stype)
+
+        ai = get_ai_service()
+        suggestions_data = ai.get_resume_suggestions(parsed_data)
+
+        if not suggestions_data:
+            flash('AI analysis completed but no suggestions were generated.', 'info')
+            return redirect(url_for('resume.view_resume'))
+
+        suggestion_count = 0
+
+        # Experience alternate titles
+        for exp_sugg in suggestions_data.get('experience_suggestions', []):
+            exp_id = experience_map.get(exp_sugg.get('company'))
+            if exp_id and exp_sugg.get('alternate_titles'):
+                for alt_title in exp_sugg['alternate_titles']:
+                    Suggestion.create(
+                        suggestion_type=Suggestion.TYPE_EXPERIENCE_ALT_TITLES,
+                        component_id=exp_id,
+                        original_text=exp_sugg.get('current_title', ''),
+                        suggested_text=alt_title.strip(),
+                        reasoning='AI-suggested alternate title to appeal to different roles'
+                    )
+                    suggestion_count += 1
+
+        # Bullet improvements
+        for bullet_sugg in suggestions_data.get('bullet_suggestions', []):
+            bullet_id = bullet_map.get(bullet_sugg.get('original'))
+            if bullet_id:
+                Suggestion.create(
+                    suggestion_type=Suggestion.TYPE_BULLET_IMPROVEMENT,
+                    component_id=bullet_id,
+                    original_text=bullet_sugg['original'],
+                    suggested_text=bullet_sugg['improved'],
+                    reasoning=bullet_sugg.get('reason', '')
+                )
+                suggestion_count += 1
+
+        # New skills
+        for skill_sugg in suggestions_data.get('skill_suggestions', []):
+            Suggestion.create(
+                suggestion_type=Suggestion.TYPE_NEW_SKILL,
+                suggested_text=skill_sugg,
+                reasoning='AI-suggested skill based on your experience'
+            )
+            suggestion_count += 1
+
+        # Clarifying questions
+        for question in suggestions_data.get('clarifying_questions', []):
+            Suggestion.create(
+                suggestion_type=Suggestion.TYPE_CLARIFYING_QUESTION,
+                suggested_text=question,
+                reasoning='Question to help improve your profile'
+            )
+            suggestion_count += 1
+
+        flash(f'AI analysis complete! {suggestion_count} new suggestions generated.', 'success')
+        return redirect(url_for('suggestions.view_suggestions'))
+
+    except Exception as e:
+        flash(f'Error during AI analysis: {str(e)}', 'error')
+        return redirect(url_for('resume.view_resume'))
+
+
 @bp.route('/import/save', methods=['POST'])
 def save_import():
     """Save the reviewed resume components to database"""
@@ -1050,6 +1198,38 @@ def export_select():
                 for r in profile_data['rules']
             ]
 
+    # Check if pre-selecting from a tailor analysis
+    analysis_id = request.args.get('analysis_id', type=int)
+    pre_selected = None
+    analysis_job = None
+
+    if analysis_id:
+        from models.tailor_analysis import TailorAnalysis
+        recommended = TailorAnalysis.get_recommended_ids(analysis_id)
+
+        if recommended:
+            # Resolve any skill names that only have names (no valid IDs)
+            skill_name_to_id = {s['skill_name'].lower(): s['id'] for s in skills}
+            for name in recommended.get('skill_names', []):
+                matched_id = skill_name_to_id.get(name.lower())
+                if matched_id:
+                    recommended['skill_ids'].add(matched_id)
+
+            pre_selected = {
+                'experience_ids': recommended['experience_ids'],
+                'bullet_ids': recommended['bullet_ids'],
+                'skill_ids': recommended['skill_ids'],
+                'education_ids': recommended['education_ids'],
+            }
+
+            # Get job info for the context banner
+            analysis = TailorAnalysis.get_by_id(analysis_id)
+            if analysis:
+                with get_db_context() as (conn, cursor):
+                    cursor.execute("SELECT company_name, job_title FROM jobs WHERE id = ?",
+                                   (analysis['job_id'],))
+                    analysis_job = cursor.fetchone()
+
     return render_template(
         'export_select.html',
         experiences=experiences,
@@ -1059,6 +1239,8 @@ def export_select():
         profiles=profiles,
         default_profile=default_profile,
         profiles_rules_json=json.dumps(profiles_rules_data),
+        pre_selected=pre_selected,
+        analysis_job=analysis_job,
     )
 
 

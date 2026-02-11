@@ -6,6 +6,7 @@ from models.job import Job
 from models.resume import Experience, Bullet, Skill, Education
 from models.suggestion import Suggestion
 from models.export_profile import ExportProfile
+from models.tailor_analysis import TailorAnalysis
 
 __all__ = [
     'get_db',
@@ -18,5 +19,6 @@ __all__ = [
     'Skill',
     'Education',
     'Suggestion',
-    'ExportProfile'
+    'ExportProfile',
+    'TailorAnalysis',
 ]

@@ -119,7 +119,7 @@ Return ONLY valid JSON."""
     
     @staticmethod
     def job_matching(job, resume_summary):
-        """Prompt for matching resume components to a job"""
+        """Prompt for matching resume components to a job - returns structured JSON"""
         return f"""You are a professional resume consultant. Analyze this job posting and the candidate's resume components, then recommend which components to include and how to position them.
 
 JOB POSTING:
@@ -132,31 +132,47 @@ Requirements:
 {resume_summary}
 
 TASK:
-Analyze which resume components are most relevant for this job. For each category, provide specific recommendations.
+Analyze which resume components are most relevant for this job. Return your analysis as JSON.
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
+Return ONLY valid JSON in this exact format (no markdown, no code blocks):
 
-EXPERIENCES:
-[For each recommended experience, write:]
-- Experience ID: [number]
-- Recommended Title: [which title variant to use]
-- Relevance Score: [1-100]
-- Reasoning: [why this experience is relevant]
+{{
+  "experiences": [
+    {{
+      "id": 1,
+      "recommended_title": "Which title variant to use for this job",
+      "relevance_score": 85,
+      "reasoning": "Why this experience is relevant"
+    }}
+  ],
+  "bullets": [
+    {{
+      "id": 1,
+      "relevance_score": 90,
+      "reasoning": "Why this bullet is relevant"
+    }}
+  ],
+  "skills": [
+    {{
+      "id": 1,
+      "name": "Python",
+      "reasoning": "Why this skill is relevant"
+    }}
+  ],
+  "education": [
+    {{
+      "id": 1,
+      "relevance_score": 75,
+      "reasoning": "Why this education entry is relevant"
+    }}
+  ],
+  "strategy": "2-3 sentences on how to position this candidate for this role. Include advice on which titles to use, what to emphasize, and any gaps to address."
+}}
 
-BULLETS:
-[For each recommended bullet, write:]
-- Bullet ID: [number]
-- Relevance Score: [1-100]
-- Reasoning: [why this bullet is relevant]
-
-SKILLS:
-[List the most relevant skills from the candidate's skill list]
-- [skill name]: [why it's relevant]
-
-OVERALL STRATEGY:
-[2-3 sentences on how to position this candidate for this role]
-
-Only recommend components that are genuinely relevant. Be selective - quality over quantity."""
+Only recommend components that are genuinely relevant. Be selective - quality over quantity.
+Include relevance scores from 1-100 for experiences, bullets, and education.
+For skills, include both the ID number and the skill name.
+Return ONLY valid JSON."""
     
     @staticmethod
     def question_analysis(question_text, answer):
@@ -209,13 +225,20 @@ Only suggest items that are clearly supported by their answer. If the answer doe
         # Skills
         summary += "\n=== SKILLS ===\n"
         for skill in skills:
-            summary += f"- {skill['skill_name']} ({skill['category']})\n"
-        
+            summary += f"\nID: {skill['id']}\n"
+            summary += f"Skill: {skill['skill_name']}\n"
+            summary += f"Category: {skill['category']}\n"
+
         # Education
         if education:
             summary += "\n=== EDUCATION ===\n"
             for edu in education:
-                summary += f"- {edu['degree']} in {edu['field_of_study']}, {edu['school_name']} ({edu['graduation_year']})\n"
+                summary += f"\nID: {edu['id']}\n"
+                summary += f"Degree: {edu['degree']} in {edu['field_of_study']}\n"
+                summary += f"School: {edu['school_name']}\n"
+                summary += f"Year: {edu['graduation_year']}\n"
+                if edu['location']:
+                    summary += f"Location: {edu['location']}\n"
         
         return summary
 
