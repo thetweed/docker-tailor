@@ -52,8 +52,9 @@ class Experience:
     
     @staticmethod
     def delete(exp_id):
-        """Delete an experience"""
+        """Delete an experience and its associated bullets"""
         with get_db_context() as (conn, cursor):
+            cursor.execute('DELETE FROM bullets WHERE experience_id = ?', (exp_id,))
             cursor.execute('DELETE FROM experiences WHERE id = ?', (exp_id,))
             return cursor.rowcount > 0
     
@@ -67,8 +68,9 @@ class Experience:
     
     @staticmethod
     def delete_all():
-        """Delete all experiences"""
+        """Delete all experiences and their associated bullets"""
         with get_db_context() as (conn, cursor):
+            cursor.execute('DELETE FROM bullets WHERE experience_id IS NOT NULL')
             cursor.execute('DELETE FROM experiences')
             return cursor.rowcount
 

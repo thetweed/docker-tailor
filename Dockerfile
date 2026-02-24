@@ -5,7 +5,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system dependencies required for Playwright and other tools
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
     ca-certificates \
@@ -39,11 +39,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Playwright browsers (only Chromium to save space)
 RUN playwright install chromium
 
+# Create a non-root user
+RUN useradd --create-home appuser
+
 # Copy application code
 COPY . .
 
-# Create necessary directories for data persistence
-RUN mkdir -p uploads flask_session
+# Create directories for data persistence and set ownership
+RUN mkdir -p data uploads flask_session \
+    && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Set environment variables
 ENV FLASK_APP=app.py

@@ -13,14 +13,20 @@ def list_jobs():
     """List all jobs with optional search/filter"""
     search = request.args.get('search', '')
     filter_by = request.args.get('filter_by', 'all')
-    
-    jobs = Job.get_all(search=search, filter_by=filter_by)
-    
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    jobs, total = Job.get_all(search=search, filter_by=filter_by, page=page, per_page=per_page)
+    total_pages = (total + per_page - 1) // per_page
+
     return render_template(
         'jobs.html',
         jobs=jobs,
         search=search,
-        filter_by=filter_by
+        filter_by=filter_by,
+        page=page,
+        total_pages=total_pages,
+        total=total
     )
 
 
@@ -121,7 +127,6 @@ def delete_all_jobs():
         with get_db_context() as (conn, cursor):
             cursor.execute("DELETE FROM jobs")
             count = cursor.rowcount
-            conn.commit()
         
         flash(f'Successfully deleted {count} job(s)', 'success')
     except Exception as e:

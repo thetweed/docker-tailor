@@ -33,7 +33,7 @@ The easiest way to run this application is using Docker:
    ```bash
    docker-compose up -d
    ```
-5. Open [http://localhost:5000](http://localhost:5000)
+5. Open [http://localhost:8080](http://localhost:8080)
 
 See [DOCKER.md](DOCKER.md) for detailed Docker instructions and troubleshooting.
 
@@ -238,8 +238,9 @@ job-tracker/
 - **Database**: SQLite (local file-based database)
 - **AI**: Anthropic Claude API (Haiku 4.5 & Sonnet 4.5)
 - **Web Scraping**: Playwright (headless browser) with requests fallback
-- **Document Parsing**: PyPDF2, python-docx, BeautifulSoup4
+- **Document Parsing**: pypdf, python-docx, BeautifulSoup4
 - **Export Generation**: python-docx (DOCX), ReportLab (PDF), Markdown
+- **Security**: Flask-WTF (CSRF protection)
 
 ### Database Schema
 

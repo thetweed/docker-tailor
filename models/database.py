@@ -17,6 +17,7 @@ def get_db():
             detect_types=sqlite3.PARSE_DECLTYPES
         )
         g.db.row_factory = sqlite3.Row  # Access columns by name
+        g.db.execute('PRAGMA foreign_keys = ON')
     return g.db
 
 
@@ -40,6 +41,7 @@ def get_db_context():
     """
     conn = sqlite3.connect(current_app.config['DATABASE_NAME'])
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA foreign_keys = ON')
     cursor = conn.cursor()
     
     try:

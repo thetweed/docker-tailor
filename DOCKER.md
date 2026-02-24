@@ -37,7 +37,7 @@ This guide explains how to run the Resume Tailor application using Docker.
 
    Open your browser and navigate to:
    ```
-   http://localhost:5000
+   http://localhost:8080
    ```
 
 ## Docker Commands
@@ -94,10 +94,10 @@ docker exec -it resume-tailor-app bash
 ## Troubleshooting
 
 ### Port already in use
-If port 5000 is already in use, you can change it in `docker-compose.yml`:
+If port 8080 is already in use, you can change it in `docker-compose.yml`:
 ```yaml
 ports:
-  - "8080:5000"  # Change 8080 to any available port
+  - "9090:5000"  # Change 9090 to any available port
 ```
 
 ### API key not working
@@ -133,7 +133,7 @@ docker build -t resume-tailor .
 
 # Run the container
 docker run -d \
-  -p 5000:5000 \
+  -p 8080:5000 \
   -e ANTHROPIC_API_KEY=your_api_key_here \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/uploads:/app/uploads \
@@ -145,8 +145,9 @@ docker run -d \
 ## Security Notes
 
 - **Never commit your `.env` file** to version control
-- Change the `FLASK_SECRET_KEY` to a random string in production
-- All your data stays local - only job descriptions are sent to Anthropic's API for analysis
+- Change the `FLASK_SECRET_KEY` to a random string in production — it is used for both session encryption and CSRF token generation
+- All forms are protected against cross-site request forgery (CSRF)
+- All your data stays local — only job descriptions are sent to Anthropic's API for analysis
 - The application is designed for single-user personal use
 
 ## Updating the Application

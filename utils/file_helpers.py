@@ -4,7 +4,7 @@ File Helper Utilities - Resume file upload and text extraction
 import os
 from werkzeug.utils import secure_filename
 from flask import current_app
-import PyPDF2
+import pypdf
 import docx
 
 
@@ -83,7 +83,7 @@ def _extract_from_pdf(filepath):
     """Extract text from PDF file"""
     text = ""
     with open(filepath, 'rb') as file:
-        pdf_reader = PyPDF2.PdfReader(file)
+        pdf_reader = pypdf.PdfReader(file)
         for page in pdf_reader.pages:
             text += page.extract_text() + "\n"
     return text

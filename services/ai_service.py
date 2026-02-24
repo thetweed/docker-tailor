@@ -2,6 +2,7 @@
 AI Service - All Claude API interactions
 """
 import json
+import re
 from anthropic import Anthropic
 from flask import current_app
 from utils.prompts import Prompts
@@ -35,14 +36,19 @@ class AIService:
     def _parse_json_response(self, response_text):
         """Parse JSON from Claude's response, handling markdown code blocks"""
         cleaned = response_text.strip()
-        if cleaned.startswith('```'):
-            cleaned = cleaned.split('```')[1]
-            if cleaned.startswith('json'):
-                cleaned = cleaned[4:]
-            if cleaned.endswith('```'):
-                cleaned = cleaned[:-3]
-        
-        return json.loads(cleaned.strip())
+
+        # Try to extract from a fenced code block first
+        fence_match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)```', cleaned)
+        if fence_match:
+            cleaned = fence_match.group(1).strip()
+
+        # Fall back to finding the outermost JSON object or array
+        if not cleaned.startswith(('{', '[')):
+            obj_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', cleaned)
+            if obj_match:
+                cleaned = obj_match.group(1)
+
+        return json.loads(cleaned)
     
     def extract_job_details(self, text_content):
         """Extract job details from scraped text"""
@@ -138,12 +144,9 @@ class AIService:
         return result
 
 
-# Singleton instance
-_ai_service = None
-
 def get_ai_service():
-    """Get or create AI service instance"""
-    global _ai_service
-    if _ai_service is None:
-        _ai_service = AIService()
-    return _ai_service
+    """Get or create AI service instance, scoped to the current Flask app."""
+    app = current_app._get_current_object()
+    if not hasattr(app, '_ai_service'):
+        app._ai_service = AIService()
+    return app._ai_service

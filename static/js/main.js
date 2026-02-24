@@ -4,6 +4,30 @@
  */
 
 // ============================================================================
+// CSRF TOKEN INJECTION
+// ============================================================================
+
+/**
+ * Auto-inject CSRF token into all POST forms
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) return;
+
+    const token = csrfToken.getAttribute('content');
+    document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(form) {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = token;
+            form.appendChild(input);
+        }
+    });
+});
+
+
+// ============================================================================
 // ALERT/FLASH MESSAGE HANDLING
 // ============================================================================
 

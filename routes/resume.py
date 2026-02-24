@@ -161,6 +161,70 @@ def check_education_duplicate(school_name, degree, field_of_study):
         return cursor.fetchone() is not None
 
 
+def _save_suggestions(suggestions_data, experience_map, bullet_map):
+    """Save AI suggestions to the database.
+
+    Args:
+        suggestions_data: dict from AIService.get_resume_suggestions()
+        experience_map: {company_name: experience_id}
+        bullet_map: {bullet_text: bullet_id}
+
+    Returns:
+        int: number of suggestions saved
+    """
+    if not suggestions_data:
+        return 0
+
+    count = 0
+
+    # Experience alternate titles
+    for exp_sugg in suggestions_data.get('experience_suggestions', []):
+        exp_id = experience_map.get(exp_sugg.get('company'))
+        if exp_id and exp_sugg.get('alternate_titles'):
+            for alt_title in exp_sugg['alternate_titles']:
+                Suggestion.create(
+                    suggestion_type=Suggestion.TYPE_EXPERIENCE_ALT_TITLES,
+                    component_id=exp_id,
+                    original_text=exp_sugg.get('current_title', ''),
+                    suggested_text=alt_title.strip(),
+                    reasoning='AI-suggested alternate title to appeal to different roles'
+                )
+                count += 1
+
+    # Bullet improvements
+    for bullet_sugg in suggestions_data.get('bullet_suggestions', []):
+        bullet_id = bullet_map.get(bullet_sugg.get('original'))
+        if bullet_id:
+            Suggestion.create(
+                suggestion_type=Suggestion.TYPE_BULLET_IMPROVEMENT,
+                component_id=bullet_id,
+                original_text=bullet_sugg.get('original', ''),
+                suggested_text=bullet_sugg.get('improved', ''),
+                reasoning=bullet_sugg.get('reason', '')
+            )
+            count += 1
+
+    # New skills
+    for skill_sugg in suggestions_data.get('skill_suggestions', []):
+        Suggestion.create(
+            suggestion_type=Suggestion.TYPE_NEW_SKILL,
+            suggested_text=skill_sugg,
+            reasoning='AI-suggested skill based on your experience'
+        )
+        count += 1
+
+    # Clarifying questions
+    for question in suggestions_data.get('clarifying_questions', []):
+        Suggestion.create(
+            suggestion_type=Suggestion.TYPE_CLARIFYING_QUESTION,
+            suggested_text=question,
+            reasoning='Question to help improve your profile'
+        )
+        count += 1
+
+    return count
+
+
 def _build_parsed_format_from_db():
     """Load all resume components from DB and convert to the format
     expected by AIService.get_resume_suggestions().
@@ -254,52 +318,7 @@ def analyze_resume():
             flash('AI analysis completed but no suggestions were generated.', 'info')
             return redirect(url_for('resume.view_resume'))
 
-        suggestion_count = 0
-
-        # Experience alternate titles
-        for exp_sugg in suggestions_data.get('experience_suggestions', []):
-            exp_id = experience_map.get(exp_sugg.get('company'))
-            if exp_id and exp_sugg.get('alternate_titles'):
-                for alt_title in exp_sugg['alternate_titles']:
-                    Suggestion.create(
-                        suggestion_type=Suggestion.TYPE_EXPERIENCE_ALT_TITLES,
-                        component_id=exp_id,
-                        original_text=exp_sugg.get('current_title', ''),
-                        suggested_text=alt_title.strip(),
-                        reasoning='AI-suggested alternate title to appeal to different roles'
-                    )
-                    suggestion_count += 1
-
-        # Bullet improvements
-        for bullet_sugg in suggestions_data.get('bullet_suggestions', []):
-            bullet_id = bullet_map.get(bullet_sugg.get('original'))
-            if bullet_id:
-                Suggestion.create(
-                    suggestion_type=Suggestion.TYPE_BULLET_IMPROVEMENT,
-                    component_id=bullet_id,
-                    original_text=bullet_sugg['original'],
-                    suggested_text=bullet_sugg['improved'],
-                    reasoning=bullet_sugg.get('reason', '')
-                )
-                suggestion_count += 1
-
-        # New skills
-        for skill_sugg in suggestions_data.get('skill_suggestions', []):
-            Suggestion.create(
-                suggestion_type=Suggestion.TYPE_NEW_SKILL,
-                suggested_text=skill_sugg,
-                reasoning='AI-suggested skill based on your experience'
-            )
-            suggestion_count += 1
-
-        # Clarifying questions
-        for question in suggestions_data.get('clarifying_questions', []):
-            Suggestion.create(
-                suggestion_type=Suggestion.TYPE_CLARIFYING_QUESTION,
-                suggested_text=question,
-                reasoning='Question to help improve your profile'
-            )
-            suggestion_count += 1
+        suggestion_count = _save_suggestions(suggestions_data, experience_map, bullet_map)
 
         flash(f'AI analysis complete! {suggestion_count} new suggestions generated.', 'success')
         return redirect(url_for('suggestions.view_suggestions'))
@@ -414,52 +433,7 @@ def save_import():
                 stats['education_added'] += 1
 
         # Save AI suggestions
-        suggestion_count = 0
-        if suggestions_data:
-            # Experience alternate titles
-            for exp_sugg in suggestions_data.get('experience_suggestions', []):
-                exp_id = experience_map.get(exp_sugg['company'])
-                if exp_id and exp_sugg.get('alternate_titles'):
-                    for alt_title in exp_sugg['alternate_titles']:
-                        Suggestion.create(
-                            suggestion_type=Suggestion.TYPE_EXPERIENCE_ALT_TITLES,
-                            component_id=exp_id,
-                            original_text=exp_sugg['current_title'],
-                            suggested_text=alt_title.strip(),
-                            reasoning='AI-suggested alternate title to appeal to different roles'
-                        )
-                        suggestion_count += 1
-
-            # Bullet improvements
-            for bullet_sugg in suggestions_data.get('bullet_suggestions', []):
-                bullet_id = bullet_map.get(bullet_sugg['original'])
-                if bullet_id:
-                    Suggestion.create(
-                        suggestion_type=Suggestion.TYPE_BULLET_IMPROVEMENT,
-                        component_id=bullet_id,
-                        original_text=bullet_sugg['original'],
-                        suggested_text=bullet_sugg['improved'],
-                        reasoning=bullet_sugg['reason']
-                    )
-                    suggestion_count += 1
-
-            # New skills
-            for skill_sugg in suggestions_data.get('skill_suggestions', []):
-                Suggestion.create(
-                    suggestion_type=Suggestion.TYPE_NEW_SKILL,
-                    suggested_text=skill_sugg,
-                    reasoning='AI-suggested skill based on your experience'
-                )
-                suggestion_count += 1
-
-            # Clarifying questions
-            for question in suggestions_data.get('clarifying_questions', []):
-                Suggestion.create(
-                    suggestion_type=Suggestion.TYPE_CLARIFYING_QUESTION,
-                    suggested_text=question,
-                    reasoning='Question to help improve your profile'
-                )
-                suggestion_count += 1
+        suggestion_count = _save_suggestions(suggestions_data, experience_map, bullet_map)
 
         # Clear session
         session.pop('parsed_resume', None)
@@ -787,8 +761,6 @@ def delete_all_components():
             cursor.execute("DELETE FROM skills")
             cursor.execute("DELETE FROM education")
 
-            conn.commit()
-
         flash(
             f'Successfully deleted all resume components: {exp_count} experiences, '
             f'{bullet_count} bullets, {skill_count} skills, {edu_count} education entries',
@@ -849,8 +821,6 @@ def cleanup_skills_apply():
                     (new_category, old_category)
                 )
                 updated_count += cursor.rowcount
-
-            conn.commit()
 
         # Clear session
         session.pop('skill_cleanup_suggestions', None)

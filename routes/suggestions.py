@@ -78,17 +78,17 @@ def apply_suggestion(sugg_id):
                 )
         
         elif sugg_type == Suggestion.TYPE_BULLET_IMPROVEMENT:
+            original = Bullet.get_by_id(component_id)
             if action == 'replace':
                 Bullet.update(
                     component_id,
                     bullet_text=suggested_text,
                     template_text=suggested_text,
-                    tags=Bullet.get_by_id(component_id)['tags'],
-                    category=Bullet.get_by_id(component_id)['category']
+                    tags=original['tags'],
+                    category=original['category']
                 )
                 flash('Bullet replaced with improved version!', 'success')
             elif action == 'add_new':
-                original = Bullet.get_by_id(component_id)
                 Bullet.create(
                     bullet_text=suggested_text,
                     template_text=suggested_text,

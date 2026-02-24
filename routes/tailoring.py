@@ -2,6 +2,7 @@
 Tailoring Routes - Resume tailoring for specific jobs
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from werkzeug.utils import secure_filename
 from models.database import get_db_context
 from models.tailor_analysis import TailorAnalysis
 from services.ai_service import get_ai_service
@@ -211,6 +212,7 @@ def saved_analyses():
 @bp.route('/saved/<filename>')
 def view_analysis(filename):
     """View a legacy file-based tailoring analysis"""
+    filename = secure_filename(filename)
     save_dir = os.path.join(current_app.root_path, 'saved_analyses')
     filepath = os.path.join(save_dir, filename)
 
@@ -230,6 +232,7 @@ def view_analysis(filename):
 @bp.route('/saved/delete/<filename>', methods=['POST'])
 def delete_analysis(filename):
     """Delete a legacy file-based tailoring analysis"""
+    filename = secure_filename(filename)
     save_dir = os.path.join(current_app.root_path, 'saved_analyses')
     filepath = os.path.join(save_dir, filename)
 

@@ -6,8 +6,11 @@ An AI-powered job application tracking system
 import os
 from flask import Flask
 from flask_session import Session
+from flask_wtf.csrf import CSRFProtect
 from config import config
 import models.database as database
+
+csrf = CSRFProtect()
 
 def create_app(config_name='default'):
     """Application factory pattern"""
@@ -19,7 +22,10 @@ def create_app(config_name='default'):
     
     # Initialize Flask-Session
     Session(app)
-    
+
+    # Initialize CSRF protection
+    csrf.init_app(app)
+
     # Initialize database
     database.init_app(app)
     
