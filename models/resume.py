@@ -102,13 +102,14 @@ class Bullet:
     
     @staticmethod
     def get_all():
-        """Get all bullets with joined experience info"""
+        """Get all bullets with joined experience and group info"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute('''
-            SELECT b.*, e.company_name, e.job_title
+            SELECT b.*, e.company_name, e.job_title, bg.label as group_label
             FROM bullets b
             LEFT JOIN experiences e ON b.experience_id = e.id
+            LEFT JOIN bullet_groups bg ON b.group_id = bg.id
             ORDER BY b.id DESC
         ''')
         return cursor.fetchall()
@@ -134,10 +135,43 @@ class Bullet:
     
     @staticmethod
     def delete(bullet_id):
-        """Delete a bullet"""
+        """Delete a bullet, auto-promoting another group member if it was the default"""
         with get_db_context() as (conn, cursor):
+            cursor.execute('SELECT group_id, is_group_default FROM bullets WHERE id = ?', (bullet_id,))
+            row = cursor.fetchone()
+            if row and row['group_id'] and row['is_group_default']:
+                # Promote another bullet in the same group to default
+                cursor.execute(
+                    'UPDATE bullets SET is_group_default = 1 WHERE id = '
+                    '(SELECT id FROM bullets WHERE group_id = ? AND id != ? LIMIT 1)',
+                    (row['group_id'], bullet_id)
+                )
             cursor.execute('DELETE FROM bullets WHERE id = ?', (bullet_id,))
             return cursor.rowcount > 0
+
+    @staticmethod
+    def set_group(bullet_id, group_id, is_default):
+        """Assign a bullet to a group (or remove it from a group if group_id is None)"""
+        with get_db_context() as (conn, cursor):
+            if group_id is not None and is_default:
+                cursor.execute('UPDATE bullets SET is_group_default = 0 WHERE group_id = ?', (group_id,))
+            cursor.execute(
+                'UPDATE bullets SET group_id = ?, is_group_default = ? WHERE id = ?',
+                (group_id, 1 if is_default else 0, bullet_id)
+            )
+
+    @staticmethod
+    def set_group_default(bullet_id):
+        """Make this bullet the default for its group"""
+        with get_db_context() as (conn, cursor):
+            cursor.execute('SELECT group_id FROM bullets WHERE id = ?', (bullet_id,))
+            row = cursor.fetchone()
+            if not row or not row['group_id']:
+                return False
+            group_id = row['group_id']
+            cursor.execute('UPDATE bullets SET is_group_default = 0 WHERE group_id = ?', (group_id,))
+            cursor.execute('UPDATE bullets SET is_group_default = 1 WHERE id = ?', (bullet_id,))
+            return True
     
     @staticmethod
     def count():
@@ -149,9 +183,10 @@ class Bullet:
     
     @staticmethod
     def delete_all():
-        """Delete all bullets"""
+        """Delete all bullets and their groups"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM bullets')
+            cursor.execute('DELETE FROM bullet_groups')
             return cursor.rowcount
 
 
@@ -283,3 +318,38 @@ class Education:
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM education')
             return cursor.rowcount
+
+
+class BulletGroup:
+    """Group of alternate-wording bullet points"""
+
+    @staticmethod
+    def create(label=None):
+        """Create a new bullet group"""
+        with get_db_context() as (conn, cursor):
+            cursor.execute('INSERT INTO bullet_groups (label) VALUES (?)', (label,))
+            return cursor.lastrowid
+
+    @staticmethod
+    def get_all():
+        """Get all bullet groups with member count"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('''
+            SELECT bg.*, COUNT(b.id) as bullet_count
+            FROM bullet_groups bg
+            LEFT JOIN bullets b ON b.group_id = bg.id
+            GROUP BY bg.id
+            ORDER BY bg.id
+        ''')
+        return cursor.fetchall()
+
+    @staticmethod
+    def delete(group_id):
+        """Ungroup all member bullets then delete the group"""
+        with get_db_context() as (conn, cursor):
+            cursor.execute(
+                'UPDATE bullets SET group_id = NULL, is_group_default = 1 WHERE group_id = ?',
+                (group_id,)
+            )
+            cursor.execute('DELETE FROM bullet_groups WHERE id = ?', (group_id,))

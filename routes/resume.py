@@ -2,8 +2,9 @@
 Resume Routes - Resume component management (experiences, bullets, skills, education)
 """
 import json
+from collections import OrderedDict
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from models import Experience, Bullet, Skill, Education, Suggestion
+from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion
 from models.database import get_db_context
 from services import get_ai_service
 from utils import save_uploaded_file, extract_text_from_file, cleanup_file
@@ -19,14 +20,63 @@ bp = Blueprint('resume', __name__, url_prefix='/resume')
 def view_resume():
     """View all resume components"""
     experiences = Experience.get_all()
-    bullets = Bullet.get_all()
+    bullets_raw = Bullet.get_all()
     skills = Skill.get_all()
     education = Education.get_all()
+
+    total_bullet_count = len(bullets_raw)
+
+    # Build per-group data structures
+    group_data = {}
+    for bullet in bullets_raw:
+        gid = bullet['group_id']
+        if gid is not None:
+            if gid not in group_data:
+                group_data[gid] = {'default': None, 'alternates': []}
+            if bullet['is_group_default']:
+                group_data[gid]['default'] = bullet
+            else:
+                group_data[gid]['alternates'].append(bullet)
+
+    # Build ordered display items (preserve id-DESC ordering, one entry per group)
+    display_items = []
+    seen_groups = set()
+    for bullet in bullets_raw:
+        gid = bullet['group_id']
+        if gid is None:
+            display_items.append({'type': 'solo', 'bullet': bullet})
+        elif gid not in seen_groups:
+            seen_groups.add(gid)
+            gd = group_data[gid]
+            # Edge case: no bullet marked as default — promote first one
+            if gd['default'] is None and gd['alternates']:
+                gd['default'] = gd['alternates'].pop(0)
+            display_items.append({
+                'type': 'group',
+                'group_id': gid,
+                'default': gd['default'],
+                'alternates': gd['alternates'],
+            })
+
+    # Organize display_items into experience sub-groups (preserving order)
+    exp_buckets = OrderedDict()
+    for item in display_items:
+        b = item['bullet'] if item['type'] == 'solo' else item['default']
+        exp_id = b['experience_id']
+        if exp_id not in exp_buckets:
+            if b['company_name']:
+                label = f"{b['job_title']} at {b['company_name']}"
+            else:
+                label = 'Standalone'
+            exp_buckets[exp_id] = {'exp_id': exp_id, 'label': label, 'bullets': []}
+        exp_buckets[exp_id]['bullets'].append(item)
+    experience_groups = list(exp_buckets.values())
 
     return render_template(
         'resume.html',
         experiences=experiences,
-        bullets=bullets,
+        experience_groups=experience_groups,
+        total_bullet_count=total_bullet_count,
         skills=skills,
         education=education
     )
@@ -563,16 +613,29 @@ def add_bullet():
 def edit_bullet(bullet_id):
     """Edit a bullet"""
     if request.method == 'POST':
-        if Bullet.update(
+        if not Bullet.update(
             bullet_id,
             bullet_text=request.form['bullet_text'],
             template_text=request.form.get('template_text', ''),
             tags=request.form.get('tags', ''),
             category=request.form.get('category', '')
         ):
-            flash('Bullet updated successfully', 'success')
-        else:
             flash('Bullet not found', 'error')
+            return redirect(url_for('resume.view_resume'))
+
+        # Handle group assignment
+        group_id_str = request.form.get('group_id', '')
+        is_default = bool(request.form.get('is_group_default'))
+        if group_id_str == 'new':
+            new_label = request.form.get('new_group_label', '').strip() or None
+            group_id = BulletGroup.create(label=new_label)
+            Bullet.set_group(bullet_id, group_id, True)
+        elif group_id_str:
+            Bullet.set_group(bullet_id, int(group_id_str), is_default)
+        else:
+            Bullet.set_group(bullet_id, None, True)
+
+        flash('Bullet updated successfully', 'success')
         return redirect(url_for('resume.view_resume'))
 
     bullet = Bullet.get_by_id(bullet_id)
@@ -580,7 +643,8 @@ def edit_bullet(bullet_id):
         flash('Bullet not found', 'error')
         return redirect(url_for('resume.view_resume'))
 
-    return render_template('edit_bullet.html', bullet=bullet)
+    groups = BulletGroup.get_all()
+    return render_template('edit_bullet.html', bullet=bullet, groups=groups)
 
 
 @bp.route('/bullet/<int:bullet_id>/delete', methods=['POST'])
@@ -590,6 +654,24 @@ def delete_bullet(bullet_id):
         flash('Bullet deleted successfully', 'success')
     else:
         flash('Bullet not found', 'error')
+    return redirect(url_for('resume.view_resume') + '#bullets-section')
+
+
+@bp.route('/bullet/<int:bullet_id>/set-default', methods=['POST'])
+def set_bullet_default(bullet_id):
+    """Set a bullet as the default for its group"""
+    if Bullet.set_group_default(bullet_id):
+        flash('Default variant updated', 'success')
+    else:
+        flash('Bullet not found or not in a group', 'error')
+    return redirect(url_for('resume.view_resume') + '#bullets-section')
+
+
+@bp.route('/bullet-group/<int:group_id>/delete', methods=['POST'])
+def delete_bullet_group(group_id):
+    """Ungroup all bullets in a group and delete the group"""
+    BulletGroup.delete(group_id)
+    flash('Bullets ungrouped successfully', 'success')
     return redirect(url_for('resume.view_resume') + '#bullets-section')
 
 
@@ -758,6 +840,7 @@ def delete_all_components():
             # Delete everything
             cursor.execute("DELETE FROM experiences")
             cursor.execute("DELETE FROM bullets")
+            cursor.execute("DELETE FROM bullet_groups")
             cursor.execute("DELETE FROM skills")
             cursor.execute("DELETE FROM education")
 

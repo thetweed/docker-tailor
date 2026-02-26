@@ -106,7 +106,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1; cursor: pointer;" class="collapse-toggle">
                     <div style="flex: 1;">
-                        <h2 class="card-title">📝 Bullet Points ({{ bullets|length }})</h2>
+                        <h2 class="card-title">📝 Bullet Points ({{ total_bullet_count }})</h2>
                     </div>
                     <span class="collapse-icon">▼</span>
                 </div>
@@ -114,10 +114,10 @@
                     <a href="{{ url_for('resume.add_bullet') }}" class="btn btn-small btn-primary">
                         + Add Bullet
                     </a>
-                    {% if bullets %}
+                    {% if total_bullet_count %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='bullets') }}" style="display: inline;">
                         <button type="submit" class="btn btn-small btn-danger"
-                                onclick="return confirm('Delete all {{ bullets|length }} bullets? This cannot be undone!')">
+                                onclick="return confirm('Delete all {{ total_bullet_count }} bullets? This cannot be undone!')">
                             🗑️ Delete All
                         </button>
                     </form>
@@ -126,52 +126,176 @@
             </div>
         </div>
         <div class="collapsible-content">
-        {% if bullets %}
-            {% for bullet in bullets %}
-            <div class="card-body" id="bullet-{{ bullet.id }}" style="border-top: 1px solid var(--color-border);">
-                <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
-                    <div style="flex: 1;">
-                        <p style="margin-bottom: var(--spacing-sm);">• {{ bullet.bullet_text }}</p>
-                        {% if bullet.template_text and bullet.template_text != bullet.bullet_text %}
-                            <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
-                                <em>Template: {{ bullet.template_text }}</em>
-                            </p>
-                        {% endif %}
-                        <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; align-items: center;">
-                            {% if bullet.category %}
-                                <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
-                                    {{ bullet.category }}
-                                </span>
+        {% if experience_groups %}
+            {% for exp_group in experience_groups %}
+            {% if experience_groups|length > 1 %}
+            <div class="bullet-exp-group" id="bullet-exp-{{ exp_group.exp_id or 'standalone' }}" data-exp="{{ exp_group.exp_id or 'standalone' }}">
+                <div class="bullet-exp-header" onclick="toggleExpGroup(this)"
+                     style="display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-md); background: var(--color-background-alt); border-top: 1px solid var(--color-border); cursor: pointer; user-select: none;">
+                    <span class="exp-collapse-icon" style="color: var(--color-primary); width: 1rem; text-align: center;">▼</span>
+                    <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); flex: 1;">{{ exp_group.label }}</span>
+                    <span class="text-muted" style="font-size: var(--font-size-sm);">{{ exp_group.bullets|length }} bullet(s)</span>
+                </div>
+                <div class="bullet-exp-content">
+            {% endif %}
+                {% for item in exp_group.bullets %}
+                {% if item.type == 'solo' %}
+                {%   set bullet = item.bullet %}
+                <div class="card-body" id="bullet-{{ bullet.id }}" style="border-top: 1px solid var(--color-border);">
+                    <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
+                        <div style="flex: 1;">
+                            <p style="margin-bottom: var(--spacing-sm);">• {{ bullet.bullet_text }}</p>
+                            {% if bullet.template_text and bullet.template_text != bullet.bullet_text %}
+                                <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
+                                    <em>Template: {{ bullet.template_text }}</em>
+                                </p>
                             {% endif %}
-                            {% if bullet.tags %}
-                                {% for tag in bullet.tags.split(',') %}
-                                    <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
-                                        {{ tag.strip() }}
+                            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; align-items: center;">
+                                {% if bullet.category %}
+                                    <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+                                        {{ bullet.category }}
                                     </span>
-                                {% endfor %}
-                            {% endif %}
-                            <span class="text-muted" style="font-size: var(--font-size-sm);">
-                                {% if bullet.company_name %}
-                                    → {{ bullet.job_title }} at {{ bullet.company_name }}
-                                {% else %}
-                                    → Standalone
                                 {% endif %}
-                            </span>
+                                {% if bullet.tags %}
+                                    {% for tag in bullet.tags.split(',') %}
+                                        <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                            {{ tag.strip() }}
+                                        </span>
+                                    {% endfor %}
+                                {% endif %}
+                                {% if experience_groups|length == 1 %}
+                                <span class="text-muted" style="font-size: var(--font-size-sm);">
+                                    {% if bullet.company_name %}
+                                        → {{ bullet.job_title }} at {{ bullet.company_name }}
+                                    {% else %}
+                                        → Standalone
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
+                            <a href="{{ url_for('resume.edit_bullet', bullet_id=bullet.id) }}" class="btn btn-small btn-secondary">
+                                Edit
+                            </a>
+                            <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                        onclick="return confirm('Delete this bullet?')">
+                                    Delete
+                                </button>
+                            </form>
                         </div>
                     </div>
-                    <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
-                        <a href="{{ url_for('resume.edit_bullet', bullet_id=bullet.id) }}" class="btn btn-small btn-secondary">
-                            Edit
-                        </a>
-                        <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
-                            <button type="submit" class="btn btn-small btn-danger" 
-                                    onclick="return confirm('Delete this bullet?')">
-                                Delete
+                </div>
+                {% elif item.type == 'group' %}
+                {%   set bullet = item.default %}
+                <div class="card-body" id="bullet-{{ bullet.id }}" style="border-top: 1px solid var(--color-border);">
+                    <div style="display: flex; justify-content: space-between; gap: var(--spacing-lg);">
+                        <div style="flex: 1;">
+                            <p style="margin-bottom: var(--spacing-sm);">• {{ bullet.bullet_text }}</p>
+                            {% if bullet.template_text and bullet.template_text != bullet.bullet_text %}
+                                <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm);">
+                                    <em>Template: {{ bullet.template_text }}</em>
+                                </p>
+                            {% endif %}
+                            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; align-items: center;">
+                                {% if bullet.category %}
+                                    <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+                                        {{ bullet.category }}
+                                    </span>
+                                {% endif %}
+                                {% if bullet.tags %}
+                                    {% for tag in bullet.tags.split(',') %}
+                                        <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                            {{ tag.strip() }}
+                                        </span>
+                                    {% endfor %}
+                                {% endif %}
+                                {% if experience_groups|length == 1 %}
+                                <span class="text-muted" style="font-size: var(--font-size-sm);">
+                                    {% if bullet.company_name %}
+                                        → {{ bullet.job_title }} at {{ bullet.company_name }}
+                                    {% else %}
+                                        → Standalone
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% if item.alternates %}
+                            <button id="variants-btn-{{ item.group_id }}"
+                                    onclick="toggleVariants({{ item.group_id }})"
+                                    class="btn btn-small btn-secondary"
+                                    style="margin-top: var(--spacing-sm);">
+                                {{ item.alternates|length }} variant(s) ▶
                             </button>
-                        </form>
+                            <div id="variants-{{ item.group_id }}"
+                                 style="display: none; margin-top: var(--spacing-sm); border-left: 3px solid var(--color-border); padding-left: var(--spacing-md);">
+                                {% for alt in item.alternates %}
+                                <div style="margin-bottom: var(--spacing-sm); display: flex; justify-content: space-between; gap: var(--spacing-md);">
+                                    <div style="flex: 1;">
+                                        <p class="text-muted" style="margin-bottom: var(--spacing-xs);">• {{ alt.bullet_text }}</p>
+                                        <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap; align-items: center;">
+                                            {% if alt.category %}
+                                                <span style="background: var(--color-primary-light); color: var(--color-primary-dark); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+                                                    {{ alt.category }}
+                                                </span>
+                                            {% endif %}
+                                            {% if alt.tags %}
+                                                {% for tag in alt.tags.split(',') %}
+                                                    <span style="background: var(--color-background-alt); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--border-radius); font-size: var(--font-size-sm);">
+                                                        {{ tag.strip() }}
+                                                    </span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start; flex-shrink: 0;">
+                                        <form method="POST" action="{{ url_for('resume.set_bullet_default', bullet_id=alt.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-small btn-secondary">Set default</button>
+                                        </form>
+                                        <a href="{{ url_for('resume.edit_bullet', bullet_id=alt.id) }}" class="btn btn-small btn-secondary">Edit</a>
+                                        <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=alt.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-small btn-danger"
+                                                    onclick="return confirm('Delete this variant?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                <form method="POST" action="{{ url_for('resume.delete_bullet_group', group_id=item.group_id) }}" style="margin-top: var(--spacing-xs);">
+                                    <button type="submit" class="btn btn-small btn-secondary"
+                                            onclick="return confirm('Ungroup all variants? Bullets will remain but be ungrouped.')">
+                                        Ungroup all
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('resume.delete_bullet_group', group_id=item.group_id) }}" style="display: inline; margin-top: var(--spacing-sm);">
+                                <button type="submit" class="btn btn-small btn-secondary"
+                                        onclick="return confirm('Ungroup this bullet? It will become standalone.')">
+                                    Ungroup
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start;">
+                            <a href="{{ url_for('resume.edit_bullet', bullet_id=bullet.id) }}" class="btn btn-small btn-secondary">
+                                Edit
+                            </a>
+                            <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-danger"
+                                        onclick="return confirm('Delete this bullet?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+                {% endfor %}
+            {% if experience_groups|length > 1 %}
+                </div>
             </div>
+            {% endif %}
             {% endfor %}
         {% else %}
             <div class="card-body">
@@ -319,6 +443,41 @@
 
 {% block extra_js %}
 <script>
+// Experience sub-group collapse
+function toggleExpGroup(headerEl) {
+    const group = headerEl.closest('.bullet-exp-group');
+    const content = group.querySelector('.bullet-exp-content');
+    const icon = headerEl.querySelector('.exp-collapse-icon');
+    const expId = group.dataset.exp;
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '▼' : '▶';
+    localStorage.setItem(`bullet-exp-${expId}-collapsed`, isHidden ? 'false' : 'true');
+}
+
+// Restore experience sub-group collapse state on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.bullet-exp-group').forEach(function(group) {
+        const expId = group.dataset.exp;
+        const content = group.querySelector('.bullet-exp-content');
+        const icon = group.querySelector('.exp-collapse-icon');
+        if (localStorage.getItem(`bullet-exp-${expId}-collapsed`) === 'true') {
+            content.style.display = 'none';
+            icon.textContent = '▶';
+        }
+    });
+});
+
+// Bullet variant group toggle
+function toggleVariants(groupId) {
+    const content = document.getElementById('variants-' + groupId);
+    const btn = document.getElementById('variants-btn-' + groupId);
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    const count = btn.textContent.match(/\d+/)[0];
+    btn.textContent = count + ' variant(s) ' + (isHidden ? '▼' : '▶');
+}
+
 // Collapsible sections functionality
 document.addEventListener('DOMContentLoaded', function() {
     const sections = document.querySelectorAll('.collapsible-section');

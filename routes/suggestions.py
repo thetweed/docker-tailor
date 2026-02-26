@@ -89,14 +89,18 @@ def apply_suggestion(sugg_id):
                 )
                 flash('Bullet replaced with improved version!', 'success')
             elif action == 'add_new':
-                Bullet.create(
+                new_id = Bullet.create(
                     bullet_text=suggested_text,
                     template_text=suggested_text,
                     experience_id=original['experience_id'],
                     tags=original['tags'],
                     category=original['category']
                 )
-                flash('Added improved version as new bullet!', 'success')
+                if original['group_id']:
+                    Bullet.set_group(new_id, original['group_id'], False)
+                    flash('Added improved version as a new variant in the same group!', 'success')
+                else:
+                    flash('Added improved version as new bullet!', 'success')
         
         elif sugg_type == Suggestion.TYPE_NEW_SKILL:
             Skill.create(skill_name=suggested_text, category='ai-suggested')

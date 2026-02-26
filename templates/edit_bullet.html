@@ -18,7 +18,7 @@
                 required=true,
                 value=bullet.bullet_text
             ) }}
-            
+
             {{ textarea(
                 name='template_text',
                 label='Template Text',
@@ -26,14 +26,14 @@
                 value=bullet.template_text,
                 help_text='Generic version with placeholders like [X] or [company]'
             ) }}
-            
+
             {{ input(
                 name='category',
                 label='Category',
                 value=bullet.category or '',
                 placeholder='e.g., technical, leadership'
             ) }}
-            
+
             {{ input(
                 name='tags',
                 label='Tags',
@@ -41,7 +41,33 @@
                 placeholder='e.g., aws, project-management, cloud',
                 help_text='Comma-separated tags'
             ) }}
-            
+
+            <div class="form-group">
+                <label class="form-label">Variant Group (optional)</label>
+                <select id="group_id_select" name="group_id" class="form-select" onchange="handleGroupChange(this)">
+                    <option value="">No group</option>
+                    {% for g in groups %}
+                        <option value="{{ g.id }}" {% if bullet.group_id == g.id %}selected{% endif %}>
+                            {{ g.label or ('Group ' ~ g.id) }} ({{ g.bullet_count }} bullet(s))
+                        </option>
+                    {% endfor %}
+                    <option value="new">+ Create new group...</option>
+                </select>
+                <div id="new-group-label-field" style="display: none; margin-top: var(--spacing-sm);">
+                    <input name="new_group_label" class="form-input" placeholder="Group label (optional)">
+                </div>
+                <div style="margin-top: var(--spacing-sm);">
+                    <label style="display: flex; align-items: center; gap: var(--spacing-xs); cursor: pointer;">
+                        <input type="checkbox" name="is_group_default" value="1"
+                               {% if not bullet.group_id or bullet.is_group_default %}checked{% endif %}>
+                        Show as default in group
+                    </label>
+                    <p class="text-muted" style="font-size: var(--font-size-sm); margin-top: var(--spacing-xs);">
+                        The default bullet is shown on the components page; others are revealed on expand.
+                    </p>
+                </div>
+            </div>
+
             <div class="form-group">
                 {{ submit_button('Save Changes') }}
                 {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
@@ -49,4 +75,13 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleGroupChange(sel) {
+    document.getElementById('new-group-label-field').style.display =
+        sel.value === 'new' ? 'block' : 'none';
+}
+</script>
 {% endblock %}

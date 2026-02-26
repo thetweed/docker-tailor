@@ -91,6 +91,14 @@ def init_db():
         )
     ''')
     
+    # Bullet groups table (for linking alternate-wording bullets)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bullet_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT
+        )
+    ''')
+
     # Bullets table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS bullets (
@@ -103,6 +111,16 @@ def init_db():
             FOREIGN KEY (experience_id) REFERENCES experiences(id)
         )
     ''')
+
+    # Migrate: add group columns to bullets if missing
+    for col_sql in [
+        'ALTER TABLE bullets ADD COLUMN group_id INTEGER REFERENCES bullet_groups(id)',
+        'ALTER TABLE bullets ADD COLUMN is_group_default INTEGER DEFAULT 1',
+    ]:
+        try:
+            cursor.execute(col_sql)
+        except Exception:
+            pass  # column already exists
     
     # Skills table
     cursor.execute('''
