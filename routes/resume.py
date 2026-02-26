@@ -72,12 +72,22 @@ def view_resume():
         exp_buckets[exp_id]['bullets'].append(item)
     experience_groups = list(exp_buckets.values())
 
+    # Group skills by category (preserving DB order: category, skill_name)
+    skill_buckets = OrderedDict()
+    for skill in skills:
+        cat = skill['category'] or 'Uncategorized'
+        if cat not in skill_buckets:
+            skill_buckets[cat] = {'category': cat, 'skills': []}
+        skill_buckets[cat]['skills'].append(skill)
+    skill_groups = list(skill_buckets.values())
+
     return render_template(
         'resume.html',
         experiences=experiences,
         experience_groups=experience_groups,
         total_bullet_count=total_bullet_count,
         skills=skills,
+        skill_groups=skill_groups,
         education=education
     )
 

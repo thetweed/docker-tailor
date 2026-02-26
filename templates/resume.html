@@ -334,37 +334,37 @@
             </div>
         </div>
         <div class="collapsible-content">
-        {% if skills %}
+        {% if skill_groups %}
             <div class="card-body">
-                {% set current_category = namespace(value='') %}
-                {% for skill in skills %}
-                    {% if skill.category != current_category.value %}
-                        {% if not loop.first %}
-                            </div></div>
-                        {% endif %}
-                        {% set current_category.value = skill.category %}
-                        <div style="margin-bottom: var(--spacing-lg);">
-                            <h3 style="margin-bottom: var(--spacing-md); font-size: var(--font-size-lg);">
-                                {{ skill.category or 'Uncategorized' }}
-                            </h3>
-                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                {% for group in skill_groups %}
+                <div class="skill-cat-group" data-cat="{{ loop.index }}" style="margin-bottom: var(--spacing-lg);">
+                    {% if skill_groups|length > 1 %}
+                    <div class="skill-cat-header" onclick="toggleSkillGroup(this)"
+                         style="display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm); cursor: pointer; user-select: none;">
+                        <span class="skill-cat-icon" style="color: var(--color-primary); width: 1rem; text-align: center;">▼</span>
+                        <h3 style="margin: 0; font-size: var(--font-size-lg);">{{ group.category }}</h3>
+                        <span class="text-muted" style="font-size: var(--font-size-sm);">{{ group.skills|length }}</span>
+                    </div>
+                    {% else %}
+                    <h3 style="margin-bottom: var(--spacing-md); font-size: var(--font-size-lg);">{{ group.category }}</h3>
                     {% endif %}
-                                <div id="skill-{{ skill.id }}" style="display: inline-flex; align-items: center; gap: var(--spacing-xs); background: var(--color-background-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-xs) var(--spacing-sm);">
-                                    <span>{{ skill.skill_name }}</span>
-                                    <a href="{{ url_for('resume.edit_skill', skill_id=skill.id) }}" 
-                                       style="text-decoration: none; font-size: var(--font-size-sm);" 
-                                       title="Edit">✏️</a>
-                                    <form method="POST" action="{{ url_for('resume.delete_skill', skill_id=skill.id) }}#skill-{{ skill.id }}" style="display: inline; margin: 0;">
-                                        <button type="submit" 
-                                                style="background: none; border: none; cursor: pointer; padding: 0; font-size: var(--font-size-sm); color: var(--color-danger);" 
-                                                onclick="return confirm('Delete this skill?')" 
-                                                title="Delete">🗑️</button>
-                                    </form>
-                                </div>
-                    {% if loop.last %}
-                            </div>
+                    <div class="skill-cat-content" style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                        {% for skill in group.skills %}
+                        <div id="skill-{{ skill.id }}" style="display: inline-flex; align-items: center; gap: var(--spacing-xs); background: var(--color-background-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-xs) var(--spacing-sm);">
+                            <span>{{ skill.skill_name }}</span>
+                            <a href="{{ url_for('resume.edit_skill', skill_id=skill.id) }}"
+                               style="text-decoration: none; font-size: var(--font-size-sm);"
+                               title="Edit">✏️</a>
+                            <form method="POST" action="{{ url_for('resume.delete_skill', skill_id=skill.id) }}#skill-{{ skill.id }}" style="display: inline; margin: 0;">
+                                <button type="submit"
+                                        style="background: none; border: none; cursor: pointer; padding: 0; font-size: var(--font-size-sm); color: var(--color-danger);"
+                                        onclick="return confirm('Delete this skill?')"
+                                        title="Delete">🗑️</button>
+                            </form>
                         </div>
-                    {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endfor %}
             </div>
         {% else %}
@@ -464,6 +464,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (localStorage.getItem(`bullet-exp-${expId}-collapsed`) === 'true') {
             content.style.display = 'none';
             icon.textContent = '▶';
+        }
+    });
+});
+
+// Skill category collapse
+function toggleSkillGroup(headerEl) {
+    const group = headerEl.closest('.skill-cat-group');
+    const content = group.querySelector('.skill-cat-content');
+    const icon = headerEl.querySelector('.skill-cat-icon');
+    const cat = group.dataset.cat;
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'flex' : 'none';
+    icon.textContent = isHidden ? '▼' : '▶';
+    localStorage.setItem(`skill-cat-${cat}-collapsed`, isHidden ? 'false' : 'true');
+}
+
+// Restore skill category collapse state on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.skill-cat-group').forEach(function(group) {
+        const cat = group.dataset.cat;
+        const content = group.querySelector('.skill-cat-content');
+        const icon = group.querySelector('.skill-cat-icon');
+        if (localStorage.getItem(`skill-cat-${cat}-collapsed`) === 'true') {
+            content.style.display = 'none';
+            if (icon) icon.textContent = '▶';
         }
     });
 });
