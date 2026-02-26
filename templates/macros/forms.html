@@ -1,5 +1,11 @@
 {# Form Component Macros - Reusable form elements #}
 
+{# CSRF hidden input — include as the first element in every POST form #}
+{% macro csrf_input() %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
+
 {# Text Input Field #}
 {% macro input(name, label, type='text', value='', placeholder='', required=false, help_text='') %}
 <div class="form-group">
@@ -172,6 +178,7 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
             <form method="POST" action="{{ form_action }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger">Delete</button>
             </form>
         </div>

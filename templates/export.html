@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'macros/forms.html' import csrf_input %}
 
 {% block title %}Export - Job Tracker{% endblock %}
 
@@ -66,19 +67,23 @@
                             Edit
                         </a>
                         <form method="POST" action="{{ url_for('export.duplicate_profile', profile_id=profile.id) }}" style="display: inline;">
+                            {{ csrf_input() }}
                             <button type="submit" class="btn btn-small btn-secondary">Duplicate</button>
                         </form>
                         {% if not profile.is_default %}
                             <form method="POST" action="{{ url_for('export.set_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-secondary">Set Default</button>
                             </form>
                         {% else %}
                             <form method="POST" action="{{ url_for('export.clear_default_profile', profile_id=profile.id) }}" style="display: inline;">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-secondary">Clear Default</button>
                             </form>
                         {% endif %}
                         <form method="POST" action="{{ url_for('export.delete_profile', profile_id=profile.id) }}" style="display: inline;"
                               onsubmit="return confirm('Delete profile &quot;{{ profile.name }}&quot;? This cannot be undone.');">
+                            {{ csrf_input() }}
                             <button type="submit" class="btn btn-small btn-danger">Delete</button>
                         </form>
                     </div>

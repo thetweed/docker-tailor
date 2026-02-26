@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import input, textarea, select, submit_button, cancel_button %}
+{% from 'macros/forms.html' import csrf_input, input, textarea, select, submit_button, cancel_button %}
 
 {% block title %}Add Bullet - Job Tracker{% endblock %}
 
@@ -11,6 +11,7 @@
 <div class="card">
     <div class="card-body">
         <form method="POST">
+            {{ csrf_input() }}
             <div class="form-group">
                 <label for="experience_id" class="form-label">Link to Experience (optional)</label>
                 <select id="experience_id" name="experience_id" class="form-select">

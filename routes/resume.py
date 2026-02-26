@@ -3,7 +3,7 @@ Resume Routes - Resume component management (experiences, bullets, skills, educa
 """
 import json
 from collections import OrderedDict
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion
 from models.database import get_db_context
 from services import get_ai_service
@@ -151,10 +151,12 @@ def import_resume():
             return redirect(url_for('resume.review_import'))
 
         except ValueError as e:
+            current_app.logger.exception("Resume import validation error")
             flash(str(e), 'error')
             return redirect(request.url)
         except Exception as e:
-            flash(f'Error processing resume: {str(e)}', 'error')
+            current_app.logger.exception("Unexpected error processing resume upload")
+            flash('An error occurred while processing the resume. Please try again.', 'error')
             return redirect(request.url)
 
     return render_template('import_resume.html')
@@ -384,7 +386,8 @@ def analyze_resume():
         return redirect(url_for('suggestions.view_suggestions'))
 
     except Exception as e:
-        flash(f'Error during AI analysis: {str(e)}', 'error')
+        current_app.logger.exception("Error during AI resume analysis")
+        flash('An error occurred during AI analysis. Please try again.', 'error')
         return redirect(url_for('resume.view_resume'))
 
 
@@ -529,7 +532,8 @@ def save_import():
         return redirect(url_for('resume.view_resume'))
 
     except Exception as e:
-        flash(f'Error saving resume: {str(e)}', 'error')
+        current_app.logger.exception("Error saving imported resume components")
+        flash('An error occurred while saving the resume. Please try again.', 'error')
         return redirect(url_for('resume.review_import'))
 
 
@@ -818,7 +822,8 @@ def delete_section(section_type):
         flash(f'Deleted all {count} {section_type}', 'warning')
         return redirect(url_for('resume.view_resume') + f'#{anchor}')
     except Exception as e:
-        flash(f'Error deleting {section_type}: {str(e)}', 'error')
+        current_app.logger.exception("Error deleting resume section: %s", section_type)
+        flash(f'An error occurred while deleting {section_type}. Please try again.', 'error')
         return redirect(url_for('resume.view_resume'))
 
 @bp.route('/delete-all', methods=['POST'])
@@ -862,7 +867,8 @@ def delete_all_components():
             'success'
         )
     except Exception as e:
-        flash(f'Error deleting components: {str(e)}', 'error')
+        current_app.logger.exception("Error deleting all resume components")
+        flash('An error occurred while deleting resume components. Please try again.', 'error')
 
     return redirect(url_for('resume.view_resume'))
 
@@ -925,6 +931,7 @@ def cleanup_skills_apply():
             'success'
         )
     except Exception as e:
-        flash(f'Error applying cleanup: {str(e)}', 'error')
+        current_app.logger.exception("Error applying skill cleanup")
+        flash('An error occurred while applying cleanup. Please try again.', 'error')
 
     return redirect(url_for('resume.view_resume') + '#skills-section')

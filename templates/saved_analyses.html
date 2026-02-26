@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import empty_state %}
+{% from 'macros/forms.html' import csrf_input, empty_state %}
 
 {% block title %}Saved Analyses - Job Tracker{% endblock %}
 
@@ -45,6 +45,7 @@
                                 Export
                             </a>
                             <form method="POST" action="{{ url_for('tailoring.delete_db_analysis', analysis_id=analysis.id) }}" style="display: inline;">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-danger"
                                         onclick="return confirm('Delete this analysis?')">
                                     Delete
@@ -65,6 +66,7 @@
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3 class="card-title">Legacy Saved Files</h3>
             <form method="POST" action="{{ url_for('tailoring.delete_all_analyses') }}" style="display: inline;">
+                {{ csrf_input() }}
                 <button type="submit" class="btn btn-small btn-danger"
                         onclick="return confirm('Delete all {{ files|length }} legacy file(s)? This cannot be undone!')">
                     Delete All Files
@@ -92,6 +94,7 @@
                             View
                         </a>
                         <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=file.filename) }}" style="display: inline;">
+                            {{ csrf_input() }}
                             <button type="submit" class="btn btn-small btn-danger"
                                     onclick="return confirm('Delete this analysis?')">
                                 Delete

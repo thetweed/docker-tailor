@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import empty_state %}
+{% from 'macros/forms.html' import csrf_input, empty_state %}
 
 {% block title %}Tailor Resume - Job Tracker{% endblock %}
 
@@ -36,6 +36,7 @@
                                     📍 {{ job.location }}
                                 </p>
                                 <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" class="tailor-form">
+                                    {{ csrf_input() }}
                                     <button type="submit" class="btn btn-primary tailor-btn" style="width: 100%;" data-job-title="{{ job.job_title }}">
                                         ✨ Tailor Resume for This Job
                                     </button>

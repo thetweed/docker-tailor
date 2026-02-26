@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import file_upload, submit_button %}
+{% from 'macros/forms.html' import csrf_input, file_upload, submit_button %}
 
 {% block title %}Import Resume - Job Tracker{% endblock %}
 
@@ -31,6 +31,7 @@
     <div class="card">
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data" data-loading>
+                {{ csrf_input() }}
                 {{ file_upload(
                     name='resume_file',
                     label='Select Resume File',

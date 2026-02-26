@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'macros/forms.html' import csrf_input %}
 
 {% block title %}Export Resume - Job Tracker{% endblock %}
 
@@ -72,6 +73,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('export.export_generate') }}" id="exportForm">
+                {{ csrf_input() }}
 
                 {# Hidden inputs for disabled rules (populated by JS) #}
                 <div id="disabledRulesInputs"></div>
@@ -297,7 +299,7 @@
 {% block extra_js %}
 <script>
 // Profile rules data (embedded from server)
-const profilesRulesData = {{ profiles_rules_json|safe }};
+const profilesRulesData = {{ profiles_rules_json|tojson }};
 
 // Show/hide profile rules when a profile is selected
 function onProfileChange(profileId) {

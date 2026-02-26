@@ -125,8 +125,8 @@ def run_tailor(job_id):
         )
 
     except Exception as e:
-        current_app.logger.error(f"Tailoring error: {e}")
-        flash(f'Error during analysis: {str(e)}', 'error')
+        current_app.logger.exception("Tailoring error")
+        flash('An error occurred during analysis. Please try again.', 'error')
         return redirect(url_for('tailoring.tailor_home'))
 
 
@@ -225,7 +225,8 @@ def view_analysis(filename):
             content = f.read()
         return render_template('view_analysis.html', filename=filename, content=content)
     except Exception as e:
-        flash(f'Error reading file: {str(e)}', 'error')
+        current_app.logger.exception("Error reading analysis file")
+        flash('An error occurred while reading the file.', 'error')
         return redirect(url_for('tailoring.saved_analyses'))
 
 
@@ -243,7 +244,8 @@ def delete_analysis(filename):
         else:
             flash('File not found', 'error')
     except Exception as e:
-        flash(f'Error deleting file: {str(e)}', 'error')
+        current_app.logger.exception("Error deleting analysis file")
+        flash('An error occurred while deleting the file.', 'error')
 
     return redirect(url_for('tailoring.saved_analyses'))
 
@@ -266,6 +268,7 @@ def delete_all_analyses():
                 count += 1
         flash(f'Successfully deleted {count} analysis file(s)', 'success')
     except Exception as e:
-        flash(f'Error deleting files: {str(e)}', 'error')
+        current_app.logger.exception("Error deleting analysis files")
+        flash('An error occurred while deleting files.', 'error')
 
     return redirect(url_for('tailoring.saved_analyses'))

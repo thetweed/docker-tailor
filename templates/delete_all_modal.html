@@ -23,6 +23,7 @@
             <p>To confirm, type <strong>DELETE_EVERYTHING</strong> below:</p>
             
             <form method="POST" action="{{ url_for('resume.delete_all_components') }}" id="deleteAllForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <input 
                         type="text" 

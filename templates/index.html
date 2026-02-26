@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import empty_state %}
+{% from 'macros/forms.html' import csrf_input, empty_state %}
 
 {% block title %}Dashboard - Job Tracker{% endblock %}
 
@@ -118,7 +118,8 @@
                                     View
                                 </a>
                                 <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;" class="tailor-form-mini">
-                                    <button type="submit" 
+                                    {{ csrf_input() }}
+                                    <button type="submit"
                                             class="btn btn-small btn-primary tailor-btn-mini"
                                             data-job-title="{{ job.job_title }}">
                                         ✨ Tailor

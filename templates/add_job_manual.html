@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import input, textarea, submit_button, cancel_button %}
+{% from 'macros/forms.html' import csrf_input, input, textarea, submit_button, cancel_button %}
 
 {% block title %}Add Job Manually - Job Tracker{% endblock %}
 
@@ -15,6 +15,7 @@
         </p>
         
         <form method="POST">
+            {{ csrf_input() }}
             {{ input(
                 name='url',
                 label='Job URL',

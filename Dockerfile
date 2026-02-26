@@ -54,10 +54,13 @@ USER appuser
 
 # Set environment variables
 ENV FLASK_APP=app.py
+ENV FLASK_CONFIG=production
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Expose port 5000
 EXPOSE 5000
 
-# Run the application
-CMD ["python", "app.py"]
+# Run the application via gunicorn (no debug, production config)
+# workers=1 because SQLite + filesystem sessions don't support multi-process safely
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "app:create_app()"]

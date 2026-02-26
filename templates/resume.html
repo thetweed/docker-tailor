@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import empty_state %}
+{% from 'macros/forms.html' import csrf_input, empty_state %}
 
 {% block title %}Resume Library - Job Tracker{% endblock %}
 
@@ -9,6 +9,7 @@
         <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
             <form method="POST" action="{{ url_for('resume.analyze_resume') }}"
                   style="display: inline; margin: 0;" id="analyzeForm">
+                {{ csrf_input() }}
                 <button type="submit" class="btn btn-secondary" id="analyzeBtn"
                         onclick="return confirm('Run AI analysis on your resume? This will dismiss any existing pending suggestions and generate new ones. Takes about 15-20 seconds.')">
                     Analyze with AI
@@ -49,6 +50,7 @@
                     </a>
                     {% if experiences %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='experiences') }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ experiences|length }} experiences? This cannot be undone!')">
                             🗑️ Delete All
@@ -83,6 +85,7 @@
                             Edit
                         </a>
                         <form method="POST" action="{{ url_for('resume.delete_experience', exp_id=exp.id) }}" style="display: inline;">
+                            {{ csrf_input() }}
                             <button type="submit" class="btn btn-small btn-danger" 
                                     onclick="return confirm('Delete this experience?')">
                                 Delete
@@ -116,6 +119,7 @@
                     </a>
                     {% if total_bullet_count %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='bullets') }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ total_bullet_count }} bullets? This cannot be undone!')">
                             🗑️ Delete All
@@ -179,6 +183,7 @@
                                 Edit
                             </a>
                             <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-danger"
                                         onclick="return confirm('Delete this bullet?')">
                                     Delete
@@ -251,10 +256,12 @@
                                     </div>
                                     <div style="display: flex; gap: var(--spacing-xs); align-items: flex-start; flex-shrink: 0;">
                                         <form method="POST" action="{{ url_for('resume.set_bullet_default', bullet_id=alt.id) }}" style="display: inline;">
+                                            {{ csrf_input() }}
                                             <button type="submit" class="btn btn-small btn-secondary">Set default</button>
                                         </form>
                                         <a href="{{ url_for('resume.edit_bullet', bullet_id=alt.id) }}" class="btn btn-small btn-secondary">Edit</a>
                                         <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=alt.id) }}" style="display: inline;">
+                                            {{ csrf_input() }}
                                             <button type="submit" class="btn btn-small btn-danger"
                                                     onclick="return confirm('Delete this variant?')">Delete</button>
                                         </form>
@@ -262,6 +269,7 @@
                                 </div>
                                 {% endfor %}
                                 <form method="POST" action="{{ url_for('resume.delete_bullet_group', group_id=item.group_id) }}" style="margin-top: var(--spacing-xs);">
+                                    {{ csrf_input() }}
                                     <button type="submit" class="btn btn-small btn-secondary"
                                             onclick="return confirm('Ungroup all variants? Bullets will remain but be ungrouped.')">
                                         Ungroup all
@@ -270,6 +278,7 @@
                             </div>
                             {% else %}
                             <form method="POST" action="{{ url_for('resume.delete_bullet_group', group_id=item.group_id) }}" style="display: inline; margin-top: var(--spacing-sm);">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-secondary"
                                         onclick="return confirm('Ungroup this bullet? It will become standalone.')">
                                     Ungroup
@@ -282,6 +291,7 @@
                                 Edit
                             </a>
                             <form method="POST" action="{{ url_for('resume.delete_bullet', bullet_id=bullet.id) }}" style="display: inline;">
+                                {{ csrf_input() }}
                                 <button type="submit" class="btn btn-small btn-danger"
                                         onclick="return confirm('Delete this bullet?')">
                                     Delete
@@ -324,6 +334,7 @@
                         🧹 Clean Up Categories
                     </a>
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='skills') }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ skills|length }} skills? This cannot be undone!')">
                             🗑️ Delete All
@@ -356,6 +367,7 @@
                                style="text-decoration: none; font-size: var(--font-size-sm);"
                                title="Edit">✏️</a>
                             <form method="POST" action="{{ url_for('resume.delete_skill', skill_id=skill.id) }}#skill-{{ skill.id }}" style="display: inline; margin: 0;">
+                                {{ csrf_input() }}
                                 <button type="submit"
                                         style="background: none; border: none; cursor: pointer; padding: 0; font-size: var(--font-size-sm); color: var(--color-danger);"
                                         onclick="return confirm('Delete this skill?')"
@@ -391,6 +403,7 @@
                     </a>
                     {% if education %}
                     <form method="POST" action="{{ url_for('resume.delete_section', section_type='education') }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-danger"
                                 onclick="return confirm('Delete all {{ education|length }} education entries? This cannot be undone!')">
                             🗑️ Delete All
@@ -419,6 +432,7 @@
                             Edit
                         </a>
                         <form method="POST" action="{{ url_for('resume.delete_education', edu_id=edu.id) }}" style="display: inline;">
+                            {{ csrf_input() }}
                             <button type="submit" class="btn btn-small btn-danger" 
                                     onclick="return confirm('Delete this education?')">
                                 Delete

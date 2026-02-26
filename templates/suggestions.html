@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import empty_state %}
+{% from 'macros/forms.html' import csrf_input, empty_state %}
 
 {% block title %}AI Suggestions - Job Tracker{% endblock %}
 
@@ -68,6 +68,7 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='clarifying_question') }}" onclick="event.stopPropagation();">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.clarifying_question|length }} questions?')">
                         🗑️ Dismiss All
@@ -82,6 +83,7 @@
             <h4 style="margin-bottom: var(--spacing-md);">{{ sugg.suggested_text }}</h4>
             
             <form method="POST" action="{{ url_for('suggestions.answer_question', sugg_id=sugg.id) }}">
+                {{ csrf_input() }}
                 <div class="form-group">
                     <textarea name="answer" 
                               class="form-textarea" 
@@ -103,6 +105,7 @@
             </form>
             
             <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: none;">
+                {{ csrf_input() }}
                 <button type="submit"></button>
             </form>
         </div>
@@ -126,6 +129,7 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='experience_alternate_titles') }}" onclick="event.stopPropagation();">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.experience_alternate_titles|length }} title suggestions?')">
                         🗑️ Dismiss All
@@ -159,9 +163,11 @@
                 </span>
                 <div style="display: flex; gap: var(--spacing-xs);">
                     <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-success">✓ Add</button>
                     </form>
                     <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                        {{ csrf_input() }}
                         <button type="submit" class="btn btn-small btn-secondary">✗</button>
                     </form>
                 </div>
@@ -191,6 +197,7 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='bullet_improvement') }}" onclick="event.stopPropagation();">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.bullet_improvement|length }} bullet improvements?')">
                         🗑️ Dismiss All
@@ -220,18 +227,21 @@
             
             <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
                 <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    {{ csrf_input() }}
                     <input type="hidden" name="action" value="replace">
                     <button type="submit" class="btn btn-small btn-warning">
                         🔄 Replace Original
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    {{ csrf_input() }}
                     <input type="hidden" name="action" value="add_new">
                     <button type="submit" class="btn btn-small btn-success">
                         ➕ Add as New (Keep Original)
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary">
                         ✗ Dismiss
                     </button>
@@ -258,6 +268,7 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_skill') }}" onclick="event.stopPropagation();">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.new_skill|length }} skill suggestions?')">
                         🗑️ Dismiss All
@@ -308,6 +319,7 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_all_suggestions', suggestion_type='new_bullet') }}" onclick="event.stopPropagation();">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary"
                             onclick="return confirm('Dismiss all {{ suggestions.new_bullet|length }} bullet suggestions?')">
                         🗑️ Dismiss All
@@ -324,11 +336,13 @@
             
             <div style="display: flex; gap: var(--spacing-sm);">
                 <form method="POST" action="{{ url_for('suggestions.apply_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-success">
                         ✓ Add to Resume
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('suggestions.dismiss_suggestion', sugg_id=sugg.id) }}" style="display: inline;">
+                    {{ csrf_input() }}
                     <button type="submit" class="btn btn-small btn-secondary">
                         ✗ Dismiss
                     </button>

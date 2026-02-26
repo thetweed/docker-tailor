@@ -12,8 +12,10 @@ import models.database as database
 
 csrf = CSRFProtect()
 
-def create_app(config_name='default'):
+def create_app(config_name=None):
     """Application factory pattern"""
+    if config_name is None:
+        config_name = os.getenv('FLASK_CONFIG', 'default')
     app = Flask(__name__)
     
     # Load configuration
@@ -58,8 +60,8 @@ def check_environment():
 if __name__ == '__main__':
     # Check environment
     env_ok = check_environment()
-    
-    # Create app
+
+    # Create app (local dev only — Docker uses gunicorn)
     app = create_app('development')
     
     print("\n🚀 Starting Job Tracker...")

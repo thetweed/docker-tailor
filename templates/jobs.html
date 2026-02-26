@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros/forms.html' import input, select, empty_state %}
+{% from 'macros/forms.html' import csrf_input, input, select, empty_state %}
 
 {% block title %}Jobs - Job Tracker{% endblock %}
 
@@ -15,7 +15,8 @@
             </a>
             {% if jobs %}
             <form method="POST" action="{{ url_for('jobs.delete_all_jobs') }}" style="display: inline;">
-                <button type="submit" class="btn btn-danger" 
+                {{ csrf_input() }}
+                <button type="submit" class="btn btn-danger"
                         onclick="return confirm('Delete all {{ total }} jobs? This cannot be undone!')">
                     🗑️ Delete All Jobs
                 </button>
@@ -33,6 +34,7 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('jobs.add_job') }}" data-loading id="quickAddForm">
+                {{ csrf_input() }}
                 <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="url" class="form-label">Job Posting URL</label>
@@ -141,7 +143,8 @@
                                         View
                                     </a>
                                     <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;" class="tailor-form">
-                                        <button type="submit" 
+                                        {{ csrf_input() }}
+                                        <button type="submit"
                                                 class="btn btn-small btn-primary tailor-btn"
                                                 data-job-title="{{ job.job_title }}"
                                                 title="Tailor your resume for this job">
@@ -149,7 +152,8 @@
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ url_for('jobs.delete_job', job_id=job.id) }}" style="display: inline;">
-                                        <button type="submit" 
+                                        {{ csrf_input() }}
+                                        <button type="submit"
                                                 class="btn btn-small btn-danger" 
                                                 onclick="return confirm('Delete {{ job.company_name }} - {{ job.job_title }}?')"
                                                 title="Delete this job">

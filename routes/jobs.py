@@ -1,7 +1,8 @@
 """
 Job Routes - Job posting management with caching
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from urllib.parse import urlparse
 from models import Job
 from services import get_ai_service, ScraperService
 
@@ -51,7 +52,11 @@ def add_job():
         if not url:
             flash('URL is required', 'error')
             return redirect(url_for('jobs.add_job'))
-        
+
+        if urlparse(url).scheme not in ('http', 'https'):
+            flash('Only http:// and https:// URLs are supported', 'error')
+            return redirect(url_for('jobs.add_job'))
+
         # Check if job already exists
         if Job.exists(url):
             flash('This job posting has already been added', 'warning')
@@ -102,7 +107,8 @@ def add_job():
                     'error'
                 )
             else:
-                flash(f'Error adding job: {error_msg}', 'error')
+                current_app.logger.exception("Error adding job from URL")
+                flash('An error occurred while adding the job. Please try again or add it manually.', 'error')
             return redirect(url_for('jobs.add_job'))
     
     return render_template('add_job.html')
@@ -130,6 +136,7 @@ def delete_all_jobs():
         
         flash(f'Successfully deleted {count} job(s)', 'success')
     except Exception as e:
-        flash(f'Error deleting jobs: {str(e)}', 'error')
-    
+        current_app.logger.exception("Error deleting all jobs")
+        flash('An error occurred while deleting jobs. Please try again.', 'error')
+
     return redirect(url_for('jobs.list_jobs'))

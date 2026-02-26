@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'macros/forms.html' import csrf_input %}
 
 {% block title %}{{ job.job_title }} - Job Tracker{% endblock %}
 
@@ -10,12 +11,14 @@
                 ← Back to Jobs
             </a>
             <form method="POST" action="{{ url_for('tailoring.run_tailor', job_id=job.id) }}" style="display: inline;">
+                {{ csrf_input() }}
                 <button type="submit" class="btn btn-primary" title="Tailor your resume for this job">
                     ✨ Tailor Resume
                 </button>
             </form>
             <form method="POST" action="{{ url_for('jobs.delete_job', job_id=job.id) }}" style="display: inline;">
-                <button type="submit" class="btn btn-danger" 
+                {{ csrf_input() }}
+                <button type="submit" class="btn btn-danger"
                         onclick="return confirm('Delete this job?')">
                     Delete Job
                 </button>

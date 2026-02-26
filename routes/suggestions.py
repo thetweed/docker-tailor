@@ -1,7 +1,7 @@
 """
 Suggestions Routes - AI suggestion management
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from models import Suggestion, Experience, Bullet, Skill
 from services import get_ai_service
 
@@ -124,7 +124,8 @@ def apply_suggestion(sugg_id):
             flash('Suggestion applied successfully!', 'success')
         
     except Exception as e:
-        flash(f'Error applying suggestion: {str(e)}', 'error')
+        current_app.logger.exception("Error applying suggestion %s", sugg_id)
+        flash('An error occurred while applying the suggestion. Please try again.', 'error')
     
     if return_section:
         return redirect(url_for('suggestions.view_suggestions') + f'#{return_section}')
