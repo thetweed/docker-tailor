@@ -16,13 +16,18 @@
                 label='Skill Name',
                 required=true
             ) }}
-            
-            {{ input(
-                name='category',
-                label='Category',
-                placeholder='e.g., programming, soft-skills, tools'
-            ) }}
-            
+
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <input name="category" class="form-input" list="category-options"
+                       placeholder="e.g., programming, soft-skills, tools">
+                <datalist id="category-options">
+                    {% for cat in categories %}
+                        <option value="{{ cat }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
             <div class="form-group">
                 {{ submit_button('Add Skill') }}
                 {{ cancel_button(url_for('resume.view_resume'), 'Cancel') }}
