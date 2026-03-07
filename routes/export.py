@@ -266,7 +266,10 @@ def _build_rule_config(rule_type, form):
         source_category = form.get('split_source', '').strip()
         # Parse splits: each split has a new_category name and a list of skill_ids
         splits = []
-        split_count = int(form.get('split_count', 0))
+        try:
+            split_count = int(form.get('split_count', 0))
+        except (ValueError, TypeError):
+            return None
         for i in range(split_count):
             new_cat = form.get(f'split_name_{i}', '').strip()
             skill_ids_str = form.getlist(f'split_skills_{i}')
