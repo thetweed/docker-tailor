@@ -48,7 +48,14 @@ class AIService:
             if obj_match:
                 cleaned = obj_match.group(1)
 
-        return json.loads(cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            current_app.logger.error(
+                f"Failed to parse AI response as JSON: {e}\n"
+                f"Response snippet: {response_text[:200]}"
+            )
+            raise ValueError("The AI returned a response that couldn't be parsed. Please try again.") from e
     
     def extract_job_details(self, text_content):
         """Extract job details from scraped text"""
