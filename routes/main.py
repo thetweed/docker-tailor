@@ -82,6 +82,7 @@ def login():
     if request.method == 'POST':
         password = request.form.get('password', '')
         if password == current_app.config.get('LOGIN_PASSWORD'):
+            session.clear()  # Prevent session fixation
             session['authenticated'] = True
             next_url = request.args.get('next', '')
             # Only allow relative redirects to prevent open-redirect attacks
@@ -96,5 +97,5 @@ def login():
 @bp.route('/logout', methods=['POST'])
 def logout():
     """Clear the authenticated session."""
-    session.pop('authenticated', None)
+    session.clear()
     return redirect(url_for('main.login'))
