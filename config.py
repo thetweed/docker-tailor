@@ -21,6 +21,8 @@ class Config:
     SESSION_TYPE = 'filesystem'
     SESSION_FILE_DIR = 'flask_session'
     SESSION_PERMANENT = False
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
     
     # File Upload
     UPLOAD_FOLDER = 'uploads'
@@ -67,6 +69,7 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     TESTING = False
+    SESSION_COOKIE_SECURE = True
     
     @classmethod
     def init_app(cls, app):
