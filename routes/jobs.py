@@ -12,13 +12,19 @@ bp = Blueprint('jobs', __name__, url_prefix='/jobs')
 
 
 def _is_safe_url(url):
-    """Return False if the URL resolves to a private/internal IP (SSRF protection)."""
+    """Return False if the URL resolves to a private/internal IP (SSRF protection).
+
+    Uses getaddrinfo() to check all resolved addresses including IPv6.
+    """
     try:
         hostname = urlparse(url).hostname
         if not hostname:
             return False
-        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
-        return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+        for addr_info in socket.getaddrinfo(hostname, None):
+            ip = ipaddress.ip_address(addr_info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        return True
     except (socket.gaierror, ValueError):
         return False
 

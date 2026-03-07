@@ -1,10 +1,35 @@
 """
 Web Scraper Service - Job posting scraping with fallback
 """
+import ipaddress
+import socket
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from urllib.parse import urlparse, urljoin
 from flask import current_app
+
+_MAX_REDIRECTS = 10
+_MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5MB — job postings should never be this large
+
+
+def _is_safe_url(url):
+    """Return False if the URL resolves to a private/internal address (SSRF protection).
+
+    Checks all resolved addresses via getaddrinfo() to cover IPv6. Called both
+    before scraping (in routes/jobs.py) and after navigation to catch redirects.
+    """
+    try:
+        hostname = urlparse(url).hostname
+        if not hostname:
+            return False
+        for addr_info in socket.getaddrinfo(hostname, None):
+            ip = ipaddress.ip_address(addr_info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        return True
+    except (socket.gaierror, ValueError):
+        return False
 
 
 class ScraperService:
@@ -53,8 +78,17 @@ class ScraperService:
                 page = context.new_page()
                 page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                 page.goto(url, wait_until='domcontentloaded', timeout=timeout)
+                # Validate final URL after redirects (SSRF: redirect bypass protection)
+                if not _is_safe_url(page.url):
+                    raise ValueError(
+                        f"Scraping aborted: redirected to a private address ({page.url})"
+                    )
                 page.wait_for_timeout(2000)
                 html_content = page.content()
+                if len(html_content.encode('utf-8')) > _MAX_RESPONSE_BYTES:
+                    raise ValueError(
+                        f"Page content exceeds size limit ({_MAX_RESPONSE_BYTES // (1024*1024)}MB)"
+                    )
                 text_content = page.evaluate("() => document.body.innerText")
                 return html_content, text_content
             finally:
@@ -70,10 +104,39 @@ class ScraperService:
             'Connection': 'keep-alive',
         }
         
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # Follow redirects manually so each hop is validated (SSRF protection)
+        current_url = url
+        for _ in range(_MAX_REDIRECTS):
+            response = requests.get(current_url, headers=headers, timeout=30,
+                                    allow_redirects=False, stream=True)
+            if response.is_redirect:
+                location = response.headers.get('Location', '')
+                if not location.startswith('http'):
+                    location = urljoin(current_url, location)
+                if not _is_safe_url(location):
+                    raise ValueError(
+                        f"Scraping aborted: redirect to a private address ({location})"
+                    )
+                current_url = location
+            else:
+                response.raise_for_status()
+                # Read with size cap before buffering the full response
+                chunks = []
+                total = 0
+                for chunk in response.iter_content(chunk_size=65536):
+                    total += len(chunk)
+                    if total > _MAX_RESPONSE_BYTES:
+                        raise ValueError(
+                            f"Page content exceeds size limit "
+                            f"({_MAX_RESPONSE_BYTES // (1024 * 1024)}MB)"
+                        )
+                    chunks.append(chunk)
+                raw_html = b''.join(chunks).decode(response.encoding or 'utf-8', errors='replace')
+                break
+        else:
+            raise ValueError("Too many redirects")
+
+        soup = BeautifulSoup(raw_html, 'html.parser')
         
         # Remove script and style elements
         for script in soup(["script", "style"]):

@@ -28,7 +28,12 @@ class Job:
         cursor.execute('SELECT * FROM jobs WHERE id = ?', (job_id,))
         return cursor.fetchone()
     
-    SEARCHABLE_COLUMNS = {'company_name', 'job_title', 'location'}
+    # Maps filter_by values to pre-built WHERE clauses — column names never come from user input
+    _FILTER_WHERE = {
+        'company_name': 'WHERE company_name LIKE ?',
+        'job_title':    'WHERE job_title LIKE ?',
+        'location':     'WHERE location LIKE ?',
+    }
 
     @staticmethod
     def get_all(search=None, filter_by='all', page=1, per_page=20):
@@ -47,28 +52,27 @@ class Job:
         db = get_db()
         cursor = db.cursor()
 
-        # Build WHERE clause
+        # Build WHERE clause from a hardcoded mapping — no user input in SQL strings
         where = ''
         params = []
-        if search and filter_by != 'all' and filter_by in Job.SEARCHABLE_COLUMNS:
-            where = f'WHERE {filter_by} LIKE ?'
+        if search and filter_by in Job._FILTER_WHERE:
+            where = Job._FILTER_WHERE[filter_by]
             params = [f'%{search}%']
         elif search:
             where = 'WHERE company_name LIKE ? OR job_title LIKE ? OR location LIKE ?'
             params = [f'%{search}%', f'%{search}%', f'%{search}%']
 
         # Get total count
-        cursor.execute(f'SELECT COUNT(*) FROM jobs {where}', params)
+        cursor.execute('SELECT COUNT(*) FROM jobs ' + where, params)
         total = cursor.fetchone()[0]
 
         # Get paginated results
         offset = (page - 1) * per_page
-        cursor.execute(f'''
-            SELECT id, company_name, job_title, location, compensation, date_added
-            FROM jobs {where}
-            ORDER BY date_added DESC
-            LIMIT ? OFFSET ?
-        ''', params + [per_page, offset])
+        cursor.execute(
+            'SELECT id, company_name, job_title, location, compensation, date_added '
+            'FROM jobs ' + where + ' ORDER BY date_added DESC LIMIT ? OFFSET ?',
+            params + [per_page, offset]
+        )
 
         return cursor.fetchall(), total
     
