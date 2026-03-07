@@ -45,6 +45,22 @@ def create_app(config_name=None):
     app.register_blueprint(suggestions.bp)
     app.register_blueprint(tailoring.bp)
 
+    # Security headers on every response
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "frame-ancestors 'none'"
+        )
+        return response
+
     # Password gate — only active when LOGIN_PASSWORD is configured
     @app.before_request
     def check_auth():
@@ -67,9 +83,7 @@ def check_environment():
         print("Please create a .env file with your API key.")
         print("See .env.example for template.\n")
         return False
-    else:
-        print("API key found")
-        return True
+    return True
 
 
 if __name__ == '__main__':
