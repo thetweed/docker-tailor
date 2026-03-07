@@ -119,8 +119,9 @@ def init_db():
     ]:
         try:
             cursor.execute(col_sql)
-        except Exception:
-            pass  # column already exists
+        except sqlite3.OperationalError as e:
+            if 'duplicate column name' not in str(e):
+                raise
     
     # Skills table
     cursor.execute('''
