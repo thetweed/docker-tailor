@@ -46,22 +46,19 @@ class ScraperService:
                 headless=True,
                 args=['--disable-blink-features=AutomationControlled']
             )
-            
-            context = browser.new_context(
-                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            )
-            
-            page = context.new_page()
-            
-            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
-            page.goto(url, wait_until='domcontentloaded', timeout=timeout)
-            page.wait_for_timeout(2000)
-            
-            html_content = page.content()
-            text_content = page.evaluate("() => document.body.innerText")
-            
-            return html_content, text_content
+            try:
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                )
+                page = context.new_page()
+                page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                page.goto(url, wait_until='domcontentloaded', timeout=timeout)
+                page.wait_for_timeout(2000)
+                html_content = page.content()
+                text_content = page.evaluate("() => document.body.innerText")
+                return html_content, text_content
+            finally:
+                browser.close()
     
     @staticmethod
     def _scrape_with_requests(url):
