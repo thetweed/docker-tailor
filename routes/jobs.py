@@ -1,12 +1,26 @@
 """
 Job Routes - Job posting management with caching
 """
+import ipaddress
+import socket
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from urllib.parse import urlparse
 from models import Job
 from services import get_ai_service, ScraperService
 
 bp = Blueprint('jobs', __name__, url_prefix='/jobs')
+
+
+def _is_safe_url(url):
+    """Return False if the URL resolves to a private/internal IP (SSRF protection)."""
+    try:
+        hostname = urlparse(url).hostname
+        if not hostname:
+            return False
+        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+    except (socket.gaierror, ValueError):
+        return False
 
 
 @bp.route('/')
@@ -55,6 +69,10 @@ def add_job():
 
         if urlparse(url).scheme not in ('http', 'https'):
             flash('Only http:// and https:// URLs are supported', 'error')
+            return redirect(url_for('jobs.add_job'))
+
+        if not _is_safe_url(url):
+            flash('That URL cannot be used — it resolves to a private or reserved address.', 'error')
             return redirect(url_for('jobs.add_job'))
 
         # Check if job already exists

@@ -11,7 +11,11 @@ class Config:
     """Base configuration"""
     
     # Flask
-    SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
+
+    # Optional password gate — set LOGIN_PASSWORD to require a password to access the app.
+    # Leave unset to disable auth (useful for local dev).
+    LOGIN_PASSWORD = os.getenv('LOGIN_PASSWORD')
     
     # Session
     SESSION_TYPE = 'filesystem'
@@ -41,6 +45,11 @@ class Config:
     @staticmethod
     def init_app(app):
         """Initialize application with this config"""
+        if not app.config.get('SECRET_KEY'):
+            raise ValueError(
+                "FLASK_SECRET_KEY is not set. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
         # Create necessary directories
         os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
         os.makedirs(Config.SESSION_FILE_DIR, exist_ok=True)
@@ -70,5 +79,5 @@ class ProductionConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
-    'default': DevelopmentConfig
+    'default': ProductionConfig
 }

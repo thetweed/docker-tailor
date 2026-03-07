@@ -1,11 +1,9 @@
 """
-Main Routes - Homepage and dashboard
+Main Routes - Homepage, dashboard, and authentication
 """
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
 from models.database import get_db_context
 import os
-from flask import current_app
-from datetime import datetime
 
 bp = Blueprint('main', __name__)
 
@@ -17,49 +15,47 @@ def index():
         # Get counts
         cursor.execute("SELECT COUNT(*) FROM jobs")
         job_count = cursor.fetchone()[0]
-        
+
         cursor.execute("SELECT COUNT(*) FROM experiences")
         exp_count = cursor.fetchone()[0]
-        
+
         cursor.execute("SELECT COUNT(*) FROM bullets")
         bullet_count = cursor.fetchone()[0]
-        
+
         cursor.execute("SELECT COUNT(*) FROM skills")
         skill_count = cursor.fetchone()[0]
-        
+
         # Get pending suggestions count
         cursor.execute("""
-            SELECT COUNT(*) FROM suggestions 
+            SELECT COUNT(*) FROM suggestions
             WHERE status = 'pending'
         """)
         total_pending = cursor.fetchone()[0]
-        
+
         # Get recent jobs (last 5)
         cursor.execute("""
-            SELECT id, company_name, job_title, location, date_added 
-            FROM jobs 
-            ORDER BY date_added DESC 
+            SELECT id, company_name, job_title, location, date_added
+            FROM jobs
+            ORDER BY date_added DESC
             LIMIT 5
         """)
         raw_jobs = cursor.fetchall()
-        
+
         # Convert to list of dicts and format dates
         recent_jobs = []
         for job in raw_jobs:
             job_dict = dict(job)
-            # Format date_added as just the date part
             if job_dict.get('date_added'):
-                # If it's a string, extract the date part
                 date_str = str(job_dict['date_added'])
-                job_dict['date_added'] = date_str[:10]  # Get YYYY-MM-DD part
+                job_dict['date_added'] = date_str[:10]
             recent_jobs.append(job_dict)
-    
+
     # Count saved analyses
     save_dir = os.path.join(current_app.root_path, 'saved_analyses')
     saved_analyses_count = 0
     if os.path.exists(save_dir):
         saved_analyses_count = len([f for f in os.listdir(save_dir) if f.endswith('.txt')])
-    
+
     return render_template(
         'index.html',
         job_count=job_count,
@@ -70,3 +66,35 @@ def index():
         saved_analyses_count=saved_analyses_count,
         recent_jobs=recent_jobs
     )
+
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Password login — only active when LOGIN_PASSWORD is configured."""
+    # If auth is disabled, go straight to dashboard
+    if not current_app.config.get('LOGIN_PASSWORD'):
+        return redirect(url_for('main.index'))
+
+    # Already logged in
+    if session.get('authenticated'):
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if password == current_app.config.get('LOGIN_PASSWORD'):
+            session['authenticated'] = True
+            next_url = request.args.get('next', '')
+            # Only allow relative redirects to prevent open-redirect attacks
+            if not next_url.startswith('/'):
+                next_url = url_for('main.index')
+            return redirect(next_url)
+        flash('Incorrect password.', 'error')
+
+    return render_template('login.html')
+
+
+@bp.route('/logout', methods=['POST'])
+def logout():
+    """Clear the authenticated session."""
+    session.pop('authenticated', None)
+    return redirect(url_for('main.login'))

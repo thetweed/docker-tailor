@@ -26,5 +26,11 @@
                 Suggestions
             </a>
         </div>
+        {% if config.LOGIN_PASSWORD and session.get('authenticated') %}
+        <form method="POST" action="{{ url_for('main.logout') }}" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="nav-link" style="background:none;border:none;cursor:pointer;">Logout</button>
+        </form>
+        {% endif %}
     </div>
 </nav>

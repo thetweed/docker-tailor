@@ -7,8 +7,11 @@ services:
     environment:
       # Required: Get your API key from https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      # Optional: Flask secret key for session encryption and CSRF protection
-      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-change-this-in-production}
+      # Required: Flask secret key for session encryption and CSRF protection
+      # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+      # Optional: password to protect the app. Leave unset to disable auth.
+      - LOGIN_PASSWORD=${LOGIN_PASSWORD}
     volumes:
       # Persist database
       - ./data:/app/data

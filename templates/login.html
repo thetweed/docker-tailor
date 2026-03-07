@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Resume Tailor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .login-card { width: 100%; max-width: 360px; padding: 2rem; background: var(--surface, #fff); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+        .login-card h1 { margin: 0 0 1.5rem; font-size: 1.4rem; }
+        .login-card label { display: block; margin-bottom: .4rem; font-weight: 500; font-size: .9rem; }
+        .login-card input[type="password"] { width: 100%; padding: .6rem .75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
+        .login-card button { width: 100%; margin-top: 1rem; padding: .7rem; background: var(--primary, #2563eb); color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500; }
+        .login-card button:hover { opacity: .9; }
+        .flash-error { color: #dc2626; font-size: .875rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>Resume Tailor</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('main.login', next=request.args.get('next', '')) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autofocus autocomplete="current-password">
+            <button type="submit">Sign in</button>
+        </form>
+    </div>
+</body>
+</html>

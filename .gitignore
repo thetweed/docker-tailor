@@ -28,6 +28,9 @@ uploads/
 # Match recommendations
 match_*.txt
 
+# Claude Code reference (local dev only)
+CLAUDE.md
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -4,7 +4,7 @@ AI Service - All Claude API interactions
 import json
 import re
 from anthropic import Anthropic
-from flask import current_app
+from flask import current_app, g
 from utils.prompts import Prompts
 
 
@@ -145,8 +145,7 @@ class AIService:
 
 
 def get_ai_service():
-    """Get or create AI service instance, scoped to the current Flask app."""
-    app = current_app._get_current_object()
-    if not hasattr(app, '_ai_service'):
-        app._ai_service = AIService()
-    return app._ai_service
+    """Get or create an AIService instance scoped to the current request."""
+    if 'ai_service' not in g:
+        g.ai_service = AIService()
+    return g.ai_service
