@@ -9,14 +9,13 @@ class TailorAnalysis:
     """Tailor analysis model for storing structured AI analysis results"""
 
     @staticmethod
-    def create(job_id, analysis_data, strategy_text='', raw_response=''):
+    def create(job_id, analysis_data, strategy_text=''):
         """Create a new tailor analysis.
 
         Args:
             job_id: ID of the job this analysis is for
             analysis_data: dict with structured analysis (will be JSON-serialized)
             strategy_text: human-readable strategy summary
-            raw_response: raw AI response text for debugging
 
         Returns:
             ID of the newly created analysis
@@ -24,9 +23,9 @@ class TailorAnalysis:
         analysis_json = json.dumps(analysis_data) if isinstance(analysis_data, dict) else analysis_data
         with get_db_context() as (conn, cursor):
             cursor.execute('''
-                INSERT INTO tailor_analyses (job_id, analysis_json, strategy_text, raw_response)
-                VALUES (?, ?, ?, ?)
-            ''', (job_id, analysis_json, strategy_text, raw_response))
+                INSERT INTO tailor_analyses (job_id, analysis_json, strategy_text)
+                VALUES (?, ?, ?)
+            ''', (job_id, analysis_json, strategy_text))
             return cursor.lastrowid
 
     @staticmethod

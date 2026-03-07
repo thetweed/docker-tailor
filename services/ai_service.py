@@ -59,15 +59,7 @@ class AIService:
     
     def extract_job_details(self, text_content):
         """Extract job details from scraped text"""
-        prompt = Prompts.job_extraction(text_content)
-        response = self._call_claude(
-            prompt, 
-            model=current_app.config['HAIKU_MODEL'],
-            max_tokens=1024
-        )
-        
-        # Parse the structured response
-        job_data = {
+        defaults = {
             'company_name': 'Not specified',
             'job_title': 'Not specified',
             'location': 'Not specified',
@@ -75,23 +67,23 @@ class AIService:
             'date_posted': 'Not specified',
             'requirements': 'Not specified'
         }
-        
-        for line in response.split('\n'):
-            if line.startswith('Company:'):
-                job_data['company_name'] = line.replace('Company:', '').strip()
-            elif line.startswith('Title:'):
-                job_data['job_title'] = line.replace('Title:', '').strip()
-            elif line.startswith('Location:'):
-                job_data['location'] = line.replace('Location:', '').strip()
-            elif line.startswith('Compensation:'):
-                job_data['compensation'] = line.replace('Compensation:', '').strip()
-            elif line.startswith('Date Posted:'):
-                job_data['date_posted'] = line.replace('Date Posted:', '').strip()
-            elif line.startswith('Requirements:'):
-                idx = response.find('Requirements:')
-                job_data['requirements'] = response[idx+13:].strip()
-        
-        return job_data
+
+        prompt = Prompts.job_extraction(text_content)
+        response = self._call_claude(
+            prompt,
+            model=current_app.config['HAIKU_MODEL'],
+            max_tokens=1024
+        )
+
+        try:
+            job_data = self._parse_json_response(response)
+            for key, default in defaults.items():
+                if not job_data.get(key):
+                    job_data[key] = default
+            return job_data
+        except ValueError:
+            current_app.logger.warning("Job extraction fell back to defaults due to unparseable AI response")
+            return defaults
     
     def parse_resume(self, resume_text):
         """Parse resume text into structured components"""
@@ -118,8 +110,8 @@ class AIService:
         )
         prompt = Prompts.job_matching(job, resume_summary)
         response = self._call_claude(prompt)
+        current_app.logger.debug("Raw tailor analysis response: %s", response)
         result = self._parse_json_response(response)
-        result['_raw_response'] = response
         return result
     
     def analyze_question_answer(self, question_text, answer):

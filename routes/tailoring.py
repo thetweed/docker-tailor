@@ -90,8 +90,6 @@ def run_tailor(job_id):
             job, experiences, bullets, skills, education
         )
 
-        raw_response = analysis_data.pop('_raw_response', '')
-
         # Resolve skill IDs (validate AI-returned IDs, match by name as fallback)
         analysis_data = resolve_skill_ids(analysis_data, skills)
 
@@ -102,7 +100,6 @@ def run_tailor(job_id):
             job_id=job_id,
             analysis_data=analysis_data,
             strategy_text=strategy_text,
-            raw_response=raw_response
         )
 
         # Build lookup dictionaries for template
@@ -121,7 +118,6 @@ def run_tailor(job_id):
             bullets=bullet_dict,
             skills=skill_dict,
             education=edu_dict,
-            raw_response=raw_response,
         )
 
     except Exception as e:
@@ -170,7 +166,6 @@ def view_db_analysis(analysis_id):
         bullets=bullet_dict,
         skills=skill_dict,
         education=edu_dict,
-        raw_response=analysis.get('raw_response', ''),
     )
 
 

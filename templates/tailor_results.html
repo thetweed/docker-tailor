@@ -166,24 +166,6 @@
     </div>
     {% endif %}
 
-    {# Raw AI Response (collapsible) #}
-    {% if raw_response %}
-    <div class="card" style="margin-bottom: var(--spacing-lg);">
-        <div class="card-header">
-            <h2 class="card-title">Raw AI Response</h2>
-        </div>
-        <div class="card-body">
-            <details>
-                <summary style="cursor: pointer; color: var(--color-text-muted); font-size: var(--font-size-sm);">
-                    Show raw response
-                </summary>
-                <div style="white-space: pre-wrap; line-height: var(--line-height-relaxed, 1.8); margin-top: var(--spacing-md); font-size: var(--font-size-sm); background: var(--color-background-alt, #f8f9fa); padding: var(--spacing-md); border-radius: var(--border-radius);">
-{{ raw_response }}
-                </div>
-            </details>
-        </div>
-    </div>
-    {% endif %}
 
     {# Export CTA #}
     {% if analysis_id %}

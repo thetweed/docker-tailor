@@ -10,19 +10,21 @@ class Prompts:
     @staticmethod
     def job_extraction(text_content):
         """Prompt for extracting job details from scraped content"""
-        return f"""You are analyzing a job posting. Extract the following information and return it in EXACTLY this format (keep the labels exactly as shown):
+        return f"""You are analyzing a job posting. Extract the following information and return ONLY valid JSON (no markdown, no code blocks):
 
-Company: [extract company name]
-Title: [extract job title]
-Location: [extract location]
-Compensation: [extract salary/compensation if mentioned, otherwise write "Not specified"]
-Date Posted: [extract posting date if mentioned, otherwise write "Not specified"]
-Requirements: [list the key requirements]
+{{
+  "company_name": "Company name, or 'Not specified'",
+  "job_title": "Job title, or 'Not specified'",
+  "location": "Location, or 'Not specified'",
+  "compensation": "Salary/compensation if mentioned, otherwise 'Not specified'",
+  "date_posted": "Posting date if mentioned, otherwise 'Not specified'",
+  "requirements": "Key requirements as a single string"
+}}
 
 Job Posting Text:
 {text_content[:12000]}
 
-Return ONLY the formatted information above, nothing else."""
+Return ONLY the JSON object, nothing else."""
     
     @staticmethod
     def resume_parsing(resume_text):
