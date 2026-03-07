@@ -55,6 +55,10 @@ def apply_suggestion(sugg_id):
         if sugg_type == Suggestion.TYPE_EXPERIENCE_ALT_TITLES:
             # Add alternate title to experience
             exp = Experience.get_by_id(component_id)
+            if not exp:
+                flash('The experience this suggestion was for no longer exists.', 'error')
+                Suggestion.update_status(sugg_id, Suggestion.STATUS_DISMISSED)
+                return redirect(url_for('suggestions.view_suggestions') + '#titles-section')
             current_titles = exp['alternate_titles'] if exp['alternate_titles'] else ''
             
             existing_titles = [t.strip() for t in current_titles.split(',') if t.strip()]
@@ -79,6 +83,10 @@ def apply_suggestion(sugg_id):
         
         elif sugg_type == Suggestion.TYPE_BULLET_IMPROVEMENT:
             original = Bullet.get_by_id(component_id)
+            if not original:
+                flash('The bullet this suggestion was for no longer exists.', 'error')
+                Suggestion.update_status(sugg_id, Suggestion.STATUS_DISMISSED)
+                return redirect(url_for('suggestions.view_suggestions') + '#bullets-section')
             if action == 'replace':
                 Bullet.update(
                     component_id,
