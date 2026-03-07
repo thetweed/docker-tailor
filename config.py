@@ -37,6 +37,7 @@ class Config:
     # AI Models
     HAIKU_MODEL = "claude-haiku-4-5-20251001"
     SONNET_MODEL = "claude-sonnet-4-5-20250929"
+    AI_TIMEOUT = 120  # seconds; Anthropic SDK default is 600 (10 min)
     
     # Scraping
     SCRAPE_TIMEOUT = 60000  # milliseconds

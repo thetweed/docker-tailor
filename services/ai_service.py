@@ -15,7 +15,7 @@ class AIService:
         api_key = current_app.config.get('ANTHROPIC_API_KEY')
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY not configured")
-        self.client = Anthropic(api_key=api_key)
+        self.client = Anthropic(api_key=api_key, timeout=current_app.config.get('AI_TIMEOUT', 120))
     
     def _call_claude(self, prompt, model=None, max_tokens=4096):
         """Internal method to call Claude API"""
