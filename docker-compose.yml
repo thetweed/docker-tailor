@@ -26,3 +26,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  session-cleanup:
+    image: alpine:3
+    volumes:
+      - ./flask_session:/flask_session
+    restart: unless-stopped
+    # Delete session files not accessed in 7+ days; runs once every 24 hours
+    command: >
+      sh -c "while true; do find /flask_session -type f -atime +7 -delete; sleep 86400; done"

@@ -83,6 +83,12 @@ Your data is stored in the following directories on your host machine:
 
 These directories are automatically created when you start the container. Your data persists even if you stop or remove the container.
 
+### Session File Cleanup
+
+The `docker-compose.yml` includes a `session-cleanup` sidecar service that automatically deletes session files not accessed in 7+ days. It runs once every 24 hours using a minimal Alpine Linux image. No configuration is needed — it starts alongside the main application.
+
+If you want to change the retention period, edit the `-atime +7` value in `docker-compose.yml` (the number is days). To disable it entirely, remove or comment out the `session-cleanup` service block.
+
 ## Accessing the Container
 
 If you need to access the running container:

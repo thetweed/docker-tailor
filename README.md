@@ -268,7 +268,7 @@ All tables are created automatically on first run.
 
 **Error Handling**: Database context managers prevent connection leaks
 
-**Session Management**: Secure file-based sessions
+**Session Management**: Secure file-based sessions stored in `flask_session/`. When running via Docker, a `session-cleanup` sidecar service automatically purges session files older than 7 days. For manual installs, periodically run `find flask_session/ -type f -atime +7 -delete` or set up an equivalent cron job.
 
 ## 🔒 Privacy & Security
 
