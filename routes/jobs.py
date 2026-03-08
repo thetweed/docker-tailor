@@ -140,12 +140,17 @@ def add_job():
 
 @bp.route('/<int:job_id>/delete', methods=['POST'])
 def delete_job(job_id):
-    """Delete a job"""
-    if Job.delete(job_id):
+    """Delete a job and its associated tailor analyses"""
+    from models.database import get_db_context
+    with get_db_context() as (conn, cursor):
+        cursor.execute("DELETE FROM tailor_analyses WHERE job_id = ?", (job_id,))
+        cursor.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+        deleted = cursor.rowcount > 0
+    if deleted:
         flash('Job deleted successfully', 'success')
     else:
         flash('Job not found', 'error')
-    
+
     return redirect(url_for('jobs.list_jobs'))
 
 @bp.route('/delete-all', methods=['POST'])

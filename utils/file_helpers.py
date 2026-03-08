@@ -42,7 +42,7 @@ def save_uploaded_file(file):
     if not allowed_file(file.filename):
         raise ValueError("File type not allowed")
     
-    filename = secure_filename(file.filename)
+    filename = uuid.uuid4().hex + '_' + secure_filename(file.filename)
     upload_folder = current_app.config['UPLOAD_FOLDER']
     filepath = os.path.join(upload_folder, filename)
     
