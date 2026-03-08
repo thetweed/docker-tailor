@@ -22,6 +22,7 @@ def get_db():
         )
         g.db.row_factory = sqlite3.Row  # Access columns by name
         g.db.execute('PRAGMA foreign_keys = ON')
+        g.db.execute('PRAGMA journal_mode = WAL')
     return g.db
 
 
@@ -46,6 +47,7 @@ def get_db_context():
     conn = sqlite3.connect(current_app.config['DATABASE_NAME'], timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute('PRAGMA journal_mode = WAL')
     cursor = conn.cursor()
     
     try:
@@ -62,6 +64,7 @@ def get_db_context():
 def init_db():
     """Initialize all database tables"""
     conn = sqlite3.connect(current_app.config['DATABASE_NAME'], timeout=10)
+    conn.execute('PRAGMA journal_mode = WAL')
     cursor = conn.cursor()
     try:
         # Jobs table

@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from models.database import get_db_context
 from models.tailor_analysis import TailorAnalysis
 from services.ai_service import get_ai_service
+from extensions import limiter
 from datetime import datetime
 import os
 
@@ -63,6 +64,7 @@ def tailor_home():
 
 
 @bp.route('/run/<int:job_id>', methods=['POST'])
+@limiter.limit("20 per hour")
 def run_tailor(job_id):
     """Run resume tailoring analysis for a specific job"""
     ai = get_ai_service()

@@ -8,6 +8,7 @@ from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion
 from models.database import get_db_context
 from services import get_ai_service
 from utils import save_uploaded_file, extract_text_from_file, cleanup_file
+from extensions import limiter
 
 bp = Blueprint('resume', __name__, url_prefix='/resume')
 
@@ -355,6 +356,7 @@ def _build_parsed_format_from_db():
 
 
 @bp.route('/analyze', methods=['POST'])
+@limiter.limit("10 per hour")
 def analyze_resume():
     """Run AI suggestion analysis on existing resume components"""
     try:
@@ -878,6 +880,7 @@ def delete_all_components():
 
 
 @bp.route('/skills/cleanup-preview', methods=['GET'])
+@limiter.limit("10 per hour")
 def cleanup_skills_preview():
     """Generate AI suggestions for cleaning up skill categories"""
     skills = Skill.get_all()

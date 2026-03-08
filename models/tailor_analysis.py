@@ -2,7 +2,10 @@
 TailorAnalysis Model - Database operations for saved tailoring analyses
 """
 import json
+import logging
 from models.database import get_db_context, get_db
+
+logger = logging.getLogger(__name__)
 
 
 class TailorAnalysis:
@@ -44,7 +47,11 @@ class TailorAnalysis:
         """Get analysis with the JSON field parsed into a Python dict"""
         row = TailorAnalysis.get_by_id(analysis_id)
         if row:
-            row['analysis_data'] = json.loads(row['analysis_json'])
+            try:
+                row['analysis_data'] = json.loads(row['analysis_json'])
+            except (json.JSONDecodeError, TypeError):
+                logger.error("Corrupted analysis_json for analysis_id=%s", analysis_id)
+                row['analysis_data'] = {}
         return row
 
     @staticmethod

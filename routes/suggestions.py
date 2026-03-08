@@ -4,6 +4,7 @@ Suggestions Routes - AI suggestion management
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from models import Suggestion, Experience, Bullet, Skill
 from services import get_ai_service
+from extensions import limiter
 
 bp = Blueprint('suggestions', __name__, url_prefix='/suggestions')
 
@@ -195,6 +196,7 @@ def dismiss_all_suggestions(suggestion_type):
 
 
 @bp.route('/<int:sugg_id>/answer', methods=['POST'])
+@limiter.limit("20 per hour")
 def answer_question(sugg_id):
     """Answer a clarifying question and generate actionable suggestions"""
     answer = request.form.get('answer', '').strip()

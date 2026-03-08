@@ -2,7 +2,10 @@
 Export Profile Model - Database operations for export profiles and rules
 """
 import json
+import logging
 from models.database import get_db_context, get_db
+
+logger = logging.getLogger(__name__)
 
 
 class ExportProfile:
@@ -310,12 +313,17 @@ class ExportProfile:
 
         rules = []
         for rule in raw_rules:
+            try:
+                config = json.loads(rule['config'])
+            except (json.JSONDecodeError, TypeError):
+                logger.error("Corrupted config for export rule id=%s", rule['id'])
+                config = {}
             rules.append({
                 'id': rule['id'],
                 'profile_id': rule['profile_id'],
                 'rule_type': rule['rule_type'],
                 'rule_order': rule['rule_order'],
-                'config': json.loads(rule['config']),
+                'config': config,
                 'enabled': bool(rule['enabled']),
             })
 

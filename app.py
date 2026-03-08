@@ -10,6 +10,7 @@ from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
 from config import config
 import models.database as database
+from extensions import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,9 @@ def create_app(config_name=None):
 
     # Initialize CSRF protection
     csrf.init_app(app)
+
+    # Initialize rate limiter
+    limiter.init_app(app)
 
     # Initialize database
     database.init_app(app)
