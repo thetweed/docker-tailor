@@ -29,13 +29,17 @@ playwright install chromium
 
 # Create necessary directories
 echo "📁 Creating directories..."
-mkdir -p uploads flask_session flask_cache
+mkdir -p uploads flask_session data
 
 # Create .env from example
 if [ ! -f .env ]; then
     echo "📝 Creating .env file..."
     if [ -f .env.example ]; then
         cp .env.example .env
+        # Auto-generate a secret key (works on macOS and Linux)
+        SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+        sed -i.bak "s/your-secret-key-here/$SECRET_KEY/" .env && rm -f .env.bak
+        echo "   FLASK_SECRET_KEY has been auto-generated."
         echo "⚠️  IMPORTANT: Edit .env and add your Anthropic API key!"
     else
         echo "Creating .env with template..."
@@ -54,7 +58,7 @@ fi
 
 # Initialize database
 echo "🗄️  Initializing database..."
-python -c "
+python3 -c "
 from app import create_app
 app = create_app()
 with app.app_context():

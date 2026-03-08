@@ -98,6 +98,7 @@ FLASK_SECRET_KEY=your-random-secret-key-here
 ```bash
 python app.py
 ```
+> Debug mode is off by default. Set `FLASK_CONFIG=development` in your `.env` for local debug mode.
 
 8. **Open your browser**
    - Navigate to: `http://localhost:5000`
@@ -196,6 +197,7 @@ Since this app is designed for "analyze once, save locally" workflows, the costs
 job-tracker/
 ├── app.py                  # Application factory (main entry point)
 ├── config.py              # Configuration management
+├── extensions.py          # Shared Flask extensions (rate limiter)
 ├── requirements.txt       # Python dependencies
 ├── .env                   # Your API keys (not in git)
 │
@@ -204,6 +206,7 @@ job-tracker/
 │   ├── job.py           # Job CRUD operations
 │   ├── resume.py        # Resume components CRUD
 │   ├── suggestion.py    # AI suggestions CRUD
+│   ├── tailor_analysis.py # Saved AI analyses CRUD
 │   └── export_profile.py # Export profiles & rules CRUD
 │
 ├── services/             # Business logic
@@ -220,14 +223,15 @@ job-tracker/
 │   └── tailoring.py     # Job-resume tailoring
 │
 ├── utils/                # Helper functions
+│   ├── __init__.py      # File upload/extraction helpers
 │   ├── prompts.py       # AI prompt templates
-│   └── file_helpers.py  # File upload/extraction
+│   └── file_helpers.py  # File type utilities
 │
 ├── templates/            # HTML templates
 ├── static/              # CSS, JS, images
 ├── uploads/             # Temporary file storage
 ├── flask_session/       # Session data
-└── jobs.db             # SQLite database (created automatically)
+└── data/               # SQLite database (created automatically)
 ```
 
 ## 🛠️ Technical Details
@@ -240,7 +244,7 @@ job-tracker/
 - **Web Scraping**: Playwright (headless browser) with requests fallback
 - **Document Parsing**: pypdf, python-docx, BeautifulSoup4
 - **Export Generation**: python-docx (DOCX), ReportLab (PDF), Markdown
-- **Security**: Flask-WTF (CSRF protection)
+- **Security**: Flask-WTF (CSRF protection), Flask-Limiter (AI endpoint rate limiting)
 
 ### Database Schema
 
@@ -297,8 +301,12 @@ All tables are created automatically on first run.
 - Try a simpler format (TXT) if issues persist
 
 ### Database errors
-- Delete `jobs.db` and restart the app to recreate from scratch
+- Delete `data/resume_tailor.db` (or whatever file is in `data/`) and restart the app to recreate from scratch
 - Make sure you're not running multiple instances of the app
+
+### "CSRF session token is missing" after a rebuild
+- Your browser has a stale session cookie pointing to a session file that no longer exists
+- Clear cookies for `localhost:8080` (or your app URL) in your browser and reload
 
 ### Template/URL errors
 - If you see `BuildError`, make sure all templates use the new blueprint URLs

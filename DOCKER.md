@@ -67,11 +67,18 @@ docker-compose restart
 docker-compose up -d --build
 ```
 
-### Stop and remove all data
+### Stop and remove containers (data preserved)
 ```bash
-docker-compose down -v
+docker-compose down
 ```
-**Warning**: This will delete your database and uploaded files!
+Your data in `data/`, `uploads/`, and `flask_session/` is stored on your host machine as bind mounts and is **not** affected by `docker-compose down`.
+
+### Permanently delete all app data
+```bash
+docker-compose down
+rm -rf data/ uploads/ flask_session/
+```
+**Warning**: This permanently deletes your database, uploaded files, and sessions. There is no undo.
 
 ## Data Persistence
 
@@ -151,7 +158,8 @@ docker run -d \
 ## Security Notes
 
 - **Never commit your `.env` file** to version control
-- Change the `FLASK_SECRET_KEY` to a random string in production — it is used for both session encryption and CSRF token generation
+- `FLASK_SECRET_KEY` must be a unique, random string — it protects sessions and CSRF tokens. Generate one with: `python -c "import secrets; print(secrets.token_hex(32))"`
+- If you change `FLASK_SECRET_KEY` or rebuild the container from scratch, existing browser sessions become invalid. Clear cookies for `localhost:8080` if you see a "CSRF session token is missing" error after a rebuild
 - All forms are protected against cross-site request forgery (CSRF)
 - All your data stays local — only job descriptions are sent to Anthropic's API for analysis
 - The application is designed for single-user personal use
@@ -160,10 +168,18 @@ docker run -d \
 
 To update to a newer version:
 
-1. Pull the latest code
-2. Rebuild and restart:
+1. **Back up your data** (recommended before any update):
+   ```bash
+   tar -czf backup-$(date +%Y%m%d).tar.gz data/ uploads/
+   ```
+
+2. Pull the latest code
+
+3. Rebuild and restart:
    ```bash
    docker-compose up -d --build
    ```
 
-Your data in the mounted volumes will be preserved.
+Your data in `data/` and `uploads/` is stored as bind mounts and will be preserved. The database schema is updated automatically on startup if needed.
+
+After rebuilding, clear your browser cookies for `localhost:8080` to avoid stale session issues.

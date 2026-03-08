@@ -36,14 +36,16 @@ REM Create necessary directories
 echo Creating directories...
 if not exist uploads mkdir uploads
 if not exist flask_session mkdir flask_session
-if not exist flask_cache mkdir flask_cache
+if not exist data mkdir data
 
 REM Create .env from example
 if not exist .env (
     echo Creating .env file...
     if exist .env.example (
         copy .env.example .env
-        echo IMPORTANT: Edit .env and add your Anthropic API key!
+        echo IMPORTANT: Edit .env and set the following:
+        echo   ANTHROPIC_API_KEY=sk-ant-...
+        echo   FLASK_SECRET_KEY=^<generate with: python -c "import secrets; print(secrets.token_hex(32))"^>
     ) else (
         echo Creating .env with template...
         (
