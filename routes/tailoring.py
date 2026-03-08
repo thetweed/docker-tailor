@@ -32,8 +32,15 @@ def resolve_skill_ids(analysis_data, all_skills):
         elif skill_name:
             matched_id = name_to_id.get(skill_name.lower())
             if matched_id:
-                skill_rec['id'] = matched_id
-                resolved_skills.append(skill_rec)
+                resolved_skills.append({**skill_rec, 'id': matched_id})
+            else:
+                current_app.logger.warning(
+                    "resolve_skill_ids: dropping unmatched skill %r (id=%r)", skill_name, skill_id
+                )
+        else:
+            current_app.logger.warning(
+                "resolve_skill_ids: dropping skill with no name and invalid id=%r", skill_id
+            )
 
     analysis_data['skills'] = resolved_skills
     return analysis_data

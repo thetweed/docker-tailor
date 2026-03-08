@@ -160,6 +160,7 @@ def delete_all_jobs():
     
     try:
         with get_db_context() as (conn, cursor):
+            cursor.execute("DELETE FROM tailor_analyses")
             cursor.execute("DELETE FROM jobs")
             count = cursor.rowcount
         
