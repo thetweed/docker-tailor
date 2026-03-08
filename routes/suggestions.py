@@ -116,7 +116,9 @@ def apply_suggestion(sugg_id):
         elif sugg_type == Suggestion.TYPE_NEW_BULLET:
             category = 'general'
             if 'Category:' in suggestion['reasoning']:
-                category = suggestion['reasoning'].split('Category:')[1].split('\n')[0].strip()
+                parts = suggestion['reasoning'].split('Category:', 1)
+                if len(parts) > 1 and parts[1].strip():
+                    category = parts[1].split('\n')[0].strip()
             
             Bullet.create(
                 bullet_text=suggested_text,

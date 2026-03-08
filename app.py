@@ -3,12 +3,15 @@
 Flask Job Application Tracker
 An AI-powered job application tracking system
 """
+import logging
 import os
 from flask import Flask, session, redirect, url_for, request
 from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
 from config import config
 import models.database as database
+
+logger = logging.getLogger(__name__)
 
 csrf = CSRFProtect()
 
@@ -25,6 +28,12 @@ def create_app(config_name=None):
     # Load configuration
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+    )
 
     # Initialize Flask-Session
     Session(app)
@@ -79,25 +88,27 @@ def check_environment():
     """Check that environment is properly configured"""
     api_key = os.getenv('ANTHROPIC_API_KEY')
     if not api_key:
-        print("\nWARNING: ANTHROPIC_API_KEY not found in environment variables!")
-        print("Please create a .env file with your API key.")
-        print("See .env.example for template.\n")
+        logger.warning("ANTHROPIC_API_KEY not found in environment variables — please set it in .env")
         return False
     return True
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+    )
+
     # Check environment
     env_ok = check_environment()
 
     # Create app (local dev only — Docker uses gunicorn)
     app = create_app('development')
 
-    print("\nStarting Job Tracker...")
-    print("Open your browser to: http://127.0.0.1:5000\n")
+    logger.info("Starting Job Tracker — open http://127.0.0.1:5000")
 
     if not env_ok:
-        print("Warning: Application may not work correctly without API key\n")
+        logger.warning("Application may not work correctly without API key")
 
     # Run the app — development only, never use this in production
     app.run(host='127.0.0.1', debug=True, port=5000)
