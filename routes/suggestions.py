@@ -100,7 +100,7 @@ def apply_suggestion(sugg_id):
                 new_id = Bullet.create(
                     bullet_text=suggested_text,
                     template_text=suggested_text,
-                    experience_id=original['experience_id'],
+                    experience_id=original['experience_id'],  # NULL is acceptable; bullets may be standalone
                     tags=original['tags'],
                     category=original['category']
                 )

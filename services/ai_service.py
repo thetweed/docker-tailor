@@ -73,7 +73,12 @@ class AIService:
             raise ValueError("The AI returned a response that couldn't be parsed. Please try again.") from e
     
     def extract_job_details(self, text_content):
-        """Extract job details from scraped text"""
+        """Extract job details from scraped text.
+
+        Intentionally returns defaults on parse failure (graceful degradation) — the job
+        can still be saved with "Not specified" fields rather than failing the whole import.
+        This is different from other AI methods that raise on failure.
+        """
         defaults = {
             'company_name': 'Not specified',
             'job_title': 'Not specified',
