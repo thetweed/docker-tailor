@@ -10,7 +10,7 @@ An AI-powered job application tracking system that helps you manage job postings
 - **AI-Powered Matching**: Get intelligent recommendations on which resume components to use for each job
 - **Smart Suggestions**: Receive AI suggestions for alternate job titles, improved bullet points, and additional skills
 - **Application Tracking**: Keep track of saved job postings and match analyses
-- **Export Profiles**: Create reusable export profiles with rules to transform your resume (rename categories, merge/split skill groups, reorder sections, use alternate titles) and a personal header (name, contact info) — all applied at export time without modifying your source data
+- **Export Profiles**: Create reusable export profiles with rules to transform your resume (rename categories, merge/split skill groups, reorder sections, use alternate titles, anonymize company names) and a personal header (name, contact info) — all applied at export time without modifying your source data
 - **Multiple Export Formats**: Export resumes as TXT, Markdown, HTML, DOCX, or PDF
 
 ## 🚀 Quick Start
@@ -166,6 +166,7 @@ Export profiles let you save reusable transformation rules that are applied when
 - **Split Category**: Break a skill category into sub-groups by selecting individual skills
 - **Section Order**: Control the order sections appear (Experience, Skills, Education)
 - **Use Alternate Title**: Swap in an alternate job title for a specific experience
+- **Rename Company**: Replace a company name with an anonymized display name for a specific experience (e.g., "Acme Corp" → "Company A") — useful for submitting resumes for AI analysis without exposing employer details, then restoring real names at export time
 
 **Personal Header:**
 Each profile can include contact info (name, email, phone, location, links) that appears at the top of the exported resume. This keeps personal info out of your stored resume components and API calls.

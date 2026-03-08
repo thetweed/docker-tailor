@@ -17,6 +17,7 @@ class ExportProfile:
     RULE_SPLIT_CATEGORY = 'split_category'
     RULE_SECTION_ORDER = 'section_order'
     RULE_USE_ALTERNATE_TITLE = 'use_alternate_title'
+    RULE_RENAME_COMPANY = 'rename_company'
 
     RULE_TYPES = [
         RULE_RENAME_CATEGORY,
@@ -24,6 +25,7 @@ class ExportProfile:
         RULE_SPLIT_CATEGORY,
         RULE_SECTION_ORDER,
         RULE_USE_ALTERNATE_TITLE,
+        RULE_RENAME_COMPANY,
     ]
 
     # Human-readable rule type labels
@@ -33,6 +35,7 @@ class ExportProfile:
         RULE_SPLIT_CATEGORY: 'Split Category',
         RULE_SECTION_ORDER: 'Section Order',
         RULE_USE_ALTERNATE_TITLE: 'Use Alternate Title',
+        RULE_RENAME_COMPANY: 'Rename Company',
     }
 
     # --- Profile CRUD ---
@@ -384,5 +387,10 @@ class ExportProfile:
             title = config.get('title', '')
             exp_id = config.get('experience_id', '?')
             return f"Use title \"{title}\" for experience #{exp_id}"
+
+        elif rule_type == ExportProfile.RULE_RENAME_COMPANY:
+            display_name = config.get('display_name', '')
+            exp_id = config.get('experience_id', '?')
+            return f"Use company name \"{display_name}\" for experience #{exp_id}"
 
         return f"Unknown rule: {rule_type}"

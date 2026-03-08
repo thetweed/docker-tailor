@@ -284,6 +284,35 @@
                 </form>
             </div>
 
+            {# Rename Company Form #}
+            <div id="form_rename_company" class="rule-form" style="display: none;">
+                <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
+                    {{ csrf_input() }}
+                    <input type="hidden" name="rule_type" value="rename_company">
+                    <div class="form-group">
+                        <label class="form-label">Experience</label>
+                        <select name="rename_company_exp_id" class="form-select" id="renameCompanyExpSelect" onchange="loadCompanyName()">
+                            <option value="">-- Select experience --</option>
+                            {% for exp in experiences %}
+                                <option value="{{ exp.id }}"
+                                        data-company="{{ exp.company_name }}">
+                                    {{ exp.job_title }} at {{ exp.company_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" id="renameCompanyOptions" style="display: none;">
+                        <label class="form-label">Display Name to Use on Export</label>
+                        <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); margin-bottom: var(--spacing-xs);">
+                            Original: <span id="renameCompanyOriginal" style="font-style: italic;"></span>
+                        </p>
+                        <input type="text" name="rename_company_display_name" id="renameCompanyDisplayName" class="form-input"
+                               placeholder="e.g., Company A, Stealth Startup" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Rule</button>
+                </form>
+            </div>
+
             {# Use Alternate Title Form #}
             <div id="form_use_alternate_title" class="rule-form" style="display: none;">
                 <form method="POST" action="{{ url_for('export.add_rule', profile_id=profile.id) }}">
@@ -350,6 +379,24 @@ function updateMergeSources() {
         el.style.display = target === 'bullets' ? 'flex' : 'none';
         el.querySelector('input').checked = false;
     });
+}
+
+// Show company name field for selected experience
+function loadCompanyName() {
+    const select = document.getElementById('renameCompanyExpSelect');
+    const option = select.options[select.selectedIndex];
+    const container = document.getElementById('renameCompanyOptions');
+    const originalSpan = document.getElementById('renameCompanyOriginal');
+    const displayInput = document.getElementById('renameCompanyDisplayName');
+
+    if (!option.value) {
+        container.style.display = 'none';
+        return;
+    }
+
+    originalSpan.textContent = option.dataset.company;
+    displayInput.value = '';
+    container.style.display = 'block';
 }
 
 // Load alternate titles for selected experience

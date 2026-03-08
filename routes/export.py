@@ -293,6 +293,13 @@ def _build_rule_config(rule_type, form):
             return None
         return {'experience_id': int(exp_id_str), 'title': title}
 
+    elif rule_type == ExportProfile.RULE_RENAME_COMPANY:
+        exp_id_str = form.get('rename_company_exp_id', '')
+        display_name = form.get('rename_company_display_name', '').strip()
+        if not exp_id_str.isdigit() or not display_name:
+            return None
+        return {'experience_id': int(exp_id_str), 'display_name': display_name}
+
     return None
 
 

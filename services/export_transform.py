@@ -117,10 +117,25 @@ def _apply_use_alternate_title(data, config):
             break
 
 
+def _apply_rename_company(data, config):
+    """Replace an experience's company_name with a display name."""
+    exp_id = config.get('experience_id')
+    display_name = config.get('display_name', '')
+
+    if exp_id is None or not display_name:
+        return
+
+    for exp in data['experiences']:
+        if exp.get('id') == exp_id:
+            exp['company_name'] = display_name
+            break
+
+
 RULE_HANDLERS = {
     'rename_category': _apply_rename_category,
     'merge_categories': _apply_merge_categories,
     'split_category': _apply_split_category,
     'section_order': _apply_section_order,
     'use_alternate_title': _apply_use_alternate_title,
+    'rename_company': _apply_rename_company,
 }
