@@ -1,9 +1,12 @@
 """
 Database Connection Management and Initialization
 """
+import logging
 import sqlite3
 from contextlib import contextmanager
 from flask import g, current_app
+
+logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -47,9 +50,9 @@ def get_db_context():
     try:
         yield conn, cursor
         conn.commit()
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        raise e
+        raise
     finally:
         cursor.close()
         conn.close()
@@ -113,15 +116,12 @@ def init_db():
     ''')
 
     # Migrate: add group columns to bullets if missing
-    for col_sql in [
-        'ALTER TABLE bullets ADD COLUMN group_id INTEGER REFERENCES bullet_groups(id)',
-        'ALTER TABLE bullets ADD COLUMN is_group_default INTEGER DEFAULT 1',
-    ]:
-        try:
-            cursor.execute(col_sql)
-        except sqlite3.OperationalError as e:
-            if 'duplicate column name' not in str(e):
-                raise
+    cursor.execute("PRAGMA table_info(bullets)")
+    bullet_cols = {row[1] for row in cursor.fetchall()}
+    if 'group_id' not in bullet_cols:
+        cursor.execute('ALTER TABLE bullets ADD COLUMN group_id INTEGER REFERENCES bullet_groups(id)')
+    if 'is_group_default' not in bullet_cols:
+        cursor.execute('ALTER TABLE bullets ADD COLUMN is_group_default INTEGER DEFAULT 1')
     
     # Skills table
     cursor.execute('''
@@ -203,9 +203,15 @@ def init_db():
         )
     ''')
 
+    # FK indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_experience_id ON bullets(experience_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_group_id ON bullets(group_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_export_rules_profile_id ON export_rules(profile_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tailor_analyses_job_id ON tailor_analyses(job_id)')
+
     conn.commit()
     conn.close()
-    print("✓ Database initialized successfully")
+    logger.info("Database initialized successfully")
 
 
 def init_app(app):
