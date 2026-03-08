@@ -645,7 +645,11 @@ def edit_bullet(bullet_id):
             group_id = BulletGroup.create(label=new_label)
             Bullet.set_group(bullet_id, group_id, True)
         elif group_id_str:
-            Bullet.set_group(bullet_id, int(group_id_str), is_default)
+            try:
+                Bullet.set_group(bullet_id, int(group_id_str), is_default)
+            except (ValueError, TypeError):
+                flash('Invalid group ID', 'error')
+                return redirect(url_for('resume.view_resume'))
         else:
             Bullet.set_group(bullet_id, None, True)
 

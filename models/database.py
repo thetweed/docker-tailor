@@ -17,7 +17,8 @@ def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
             current_app.config['DATABASE_NAME'],
-            detect_types=sqlite3.PARSE_DECLTYPES
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            timeout=10
         )
         g.db.row_factory = sqlite3.Row  # Access columns by name
         g.db.execute('PRAGMA foreign_keys = ON')
@@ -42,7 +43,7 @@ def get_db_context():
             cursor.execute("SELECT * FROM jobs")
             results = cursor.fetchall()
     """
-    conn = sqlite3.connect(current_app.config['DATABASE_NAME'])
+    conn = sqlite3.connect(current_app.config['DATABASE_NAME'], timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
     cursor = conn.cursor()
@@ -60,157 +61,166 @@ def get_db_context():
 
 def init_db():
     """Initialize all database tables"""
-    conn = sqlite3.connect(current_app.config['DATABASE_NAME'])
+    conn = sqlite3.connect(current_app.config['DATABASE_NAME'], timeout=10)
     cursor = conn.cursor()
-    
-    # Jobs table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS jobs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT UNIQUE NOT NULL,
-            raw_html TEXT,
-            raw_text TEXT,
-            company_name TEXT,
-            job_title TEXT,
-            location TEXT,
-            compensation TEXT,
-            date_posted TEXT,
-            requirements TEXT,
-            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Experiences table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS experiences (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            company_name TEXT NOT NULL,
-            job_title TEXT NOT NULL,
-            alternate_titles TEXT,
-            start_date TEXT,
-            end_date TEXT,
-            location TEXT,
-            description TEXT
-        )
-    ''')
-    
-    # Bullet groups table (for linking alternate-wording bullets)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS bullet_groups (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            label TEXT
-        )
-    ''')
+    try:
+        # Jobs table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT UNIQUE NOT NULL,
+                raw_html TEXT,
+                raw_text TEXT,
+                company_name TEXT,
+                job_title TEXT,
+                location TEXT,
+                compensation TEXT,
+                date_posted TEXT,
+                requirements TEXT,
+                date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
-    # Bullets table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS bullets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            experience_id INTEGER,
-            bullet_text TEXT NOT NULL,
-            template_text TEXT,
-            tags TEXT,
-            category TEXT,
-            FOREIGN KEY (experience_id) REFERENCES experiences(id)
-        )
-    ''')
+        # Experiences table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS experiences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_name TEXT NOT NULL,
+                job_title TEXT NOT NULL,
+                alternate_titles TEXT,
+                start_date TEXT,
+                end_date TEXT,
+                location TEXT,
+                description TEXT
+            )
+        ''')
 
-    # Migrate: add group columns to bullets if missing
-    cursor.execute("PRAGMA table_info(bullets)")
-    bullet_cols = {row[1] for row in cursor.fetchall()}
-    if 'group_id' not in bullet_cols:
-        cursor.execute('ALTER TABLE bullets ADD COLUMN group_id INTEGER REFERENCES bullet_groups(id)')
-    if 'is_group_default' not in bullet_cols:
-        cursor.execute('ALTER TABLE bullets ADD COLUMN is_group_default INTEGER DEFAULT 1')
-    
-    # Skills table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS skills (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            skill_name TEXT NOT NULL,
-            category TEXT
-        )
-    ''')
-    
-    # Education table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS education (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            school_name TEXT NOT NULL,
-            degree TEXT,
-            field_of_study TEXT,
-            graduation_year TEXT,
-            location TEXT
-        )
-    ''')
-    
-    # Suggestions table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS suggestions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            suggestion_type TEXT NOT NULL,
-            component_id INTEGER,
-            original_text TEXT,
-            suggested_text TEXT,
-            reasoning TEXT,
-            status TEXT DEFAULT 'pending',
-            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+        # Bullet groups table (for linking alternate-wording bullets)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bullet_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                label TEXT
+            )
+        ''')
 
-    # Export profiles table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS export_profiles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            header_info TEXT DEFAULT '{}',
-            is_default INTEGER DEFAULT 0,
-            date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            date_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+        # Bullets table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bullets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                experience_id INTEGER,
+                bullet_text TEXT NOT NULL,
+                template_text TEXT,
+                tags TEXT,
+                category TEXT,
+                FOREIGN KEY (experience_id) REFERENCES experiences(id)
+            )
+        ''')
 
-    # Add header_info column if missing (migration for existing databases)
-    cursor.execute("PRAGMA table_info(export_profiles)")
-    columns = [row[1] for row in cursor.fetchall()]
-    if 'header_info' not in columns:
-        cursor.execute("ALTER TABLE export_profiles ADD COLUMN header_info TEXT DEFAULT '{}'")
+        # Migrate: add group columns to bullets if missing
+        cursor.execute("PRAGMA table_info(bullets)")
+        bullet_cols = {row[1] for row in cursor.fetchall()}
+        if 'group_id' not in bullet_cols:
+            cursor.execute('ALTER TABLE bullets ADD COLUMN group_id INTEGER REFERENCES bullet_groups(id)')
+        if 'is_group_default' not in bullet_cols:
+            cursor.execute('ALTER TABLE bullets ADD COLUMN is_group_default INTEGER DEFAULT 1')
 
-    # Export rules table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS export_rules (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            profile_id INTEGER NOT NULL,
-            rule_type TEXT NOT NULL,
-            rule_order INTEGER DEFAULT 0,
-            config TEXT NOT NULL DEFAULT '{}',
-            enabled INTEGER DEFAULT 1,
-            FOREIGN KEY (profile_id) REFERENCES export_profiles(id)
-        )
-    ''')
+        # Skills table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS skills (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                skill_name TEXT NOT NULL,
+                category TEXT
+            )
+        ''')
 
-    # Tailor analyses table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tailor_analyses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            job_id INTEGER NOT NULL,
-            analysis_json TEXT NOT NULL,
-            strategy_text TEXT DEFAULT '',
-            raw_response TEXT DEFAULT '',
-            date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (job_id) REFERENCES jobs(id)
-        )
-    ''')
+        # Education table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS education (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                school_name TEXT NOT NULL,
+                degree TEXT,
+                field_of_study TEXT,
+                graduation_year TEXT,
+                location TEXT
+            )
+        ''')
 
-    # FK indexes
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_experience_id ON bullets(experience_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_group_id ON bullets(group_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_export_rules_profile_id ON export_rules(profile_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tailor_analyses_job_id ON tailor_analyses(job_id)')
+        # Suggestions table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                suggestion_type TEXT NOT NULL,
+                component_id INTEGER,
+                original_text TEXT,
+                suggested_text TEXT,
+                reasoning TEXT,
+                status TEXT DEFAULT 'pending',
+                date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
-    conn.commit()
-    conn.close()
+        # Export profiles table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS export_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                header_info TEXT DEFAULT '{}',
+                is_default INTEGER DEFAULT 0,
+                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                date_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Add header_info column if missing (migration for existing databases)
+        cursor.execute("PRAGMA table_info(export_profiles)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'header_info' not in columns:
+            cursor.execute("ALTER TABLE export_profiles ADD COLUMN header_info TEXT DEFAULT '{}'")
+
+        # Export rules table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS export_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id INTEGER NOT NULL,
+                rule_type TEXT NOT NULL,
+                rule_order INTEGER DEFAULT 0,
+                config TEXT NOT NULL DEFAULT '{}',
+                enabled INTEGER DEFAULT 1,
+                FOREIGN KEY (profile_id) REFERENCES export_profiles(id)
+            )
+        ''')
+
+        # Tailor analyses table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tailor_analyses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id INTEGER NOT NULL,
+                analysis_json TEXT NOT NULL,
+                strategy_text TEXT DEFAULT '',
+                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (job_id) REFERENCES jobs(id)
+            )
+        ''')
+
+        # Migrate: drop unused raw_response column if present
+        cursor.execute("PRAGMA table_info(tailor_analyses)")
+        ta_cols = {row[1] for row in cursor.fetchall()}
+        if 'raw_response' in ta_cols:
+            cursor.execute("ALTER TABLE tailor_analyses DROP COLUMN raw_response")
+
+        # FK indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_experience_id ON bullets(experience_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_group_id ON bullets(group_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_export_rules_profile_id ON export_rules(profile_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tailor_analyses_job_id ON tailor_analyses(job_id)')
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
     logger.info("Database initialized successfully")
 
 
