@@ -127,6 +127,10 @@ def run_tailor(job_id):
             education=edu_dict,
         )
 
+    except ValueError as e:
+        current_app.logger.warning("Tailoring rejected due to input constraints: %s", e)
+        flash(str(e), 'error')
+        return redirect(url_for('tailoring.tailor_home'))
     except Exception as e:
         current_app.logger.exception("Tailoring error")
         flash('An error occurred during analysis. Please try again.', 'error')

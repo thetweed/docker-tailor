@@ -152,7 +152,7 @@ def import_resume():
 
         except ValueError as e:
             current_app.logger.exception("Resume import validation error")
-            flash(str(e), 'error')
+            flash('Could not process the resume file. Please ensure it is a valid PDF, DOCX, or TXT file and try again.', 'error')
             return redirect(request.url)
         except Exception as e:
             current_app.logger.exception("Unexpected error processing resume upload")
@@ -899,7 +899,8 @@ def cleanup_skills_preview():
             skills=skills
         )
     except Exception as e:
-        flash(f'Error generating cleanup suggestions: {str(e)}', 'error')
+        current_app.logger.exception("Error generating skill cleanup suggestions")
+        flash('An error occurred while generating suggestions. Please try again.', 'error')
         return redirect(url_for('resume.view_resume'))
 
 

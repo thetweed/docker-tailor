@@ -5,7 +5,7 @@ import ipaddress
 import socket
 import requests
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout, Error as PlaywrightError
 from urllib.parse import urlparse, urljoin
 from flask import current_app
 
@@ -49,14 +49,14 @@ class ScraperService:
         # Try Playwright first (better for JS-heavy sites)
         try:
             return ScraperService._scrape_with_playwright(url)
-        except Exception as e:
+        except (PlaywrightError, OSError, ValueError) as e:
             current_app.logger.warning(f"Playwright failed, trying simple scraping: {e}")
             # Fallback to simple requests
             try:
                 return ScraperService._scrape_with_requests(url)
-            except Exception as e2:
+            except (requests.RequestException, OSError, ValueError) as e2:
                 current_app.logger.error(f"Both scraping methods failed: {e2}")
-                raise Exception(
+                raise RuntimeError(
                     "Could not scrape this job posting. The site may be blocking automated access. "
                     "Please use 'Add Manually' to enter the job details."
                 )

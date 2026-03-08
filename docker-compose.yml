@@ -21,14 +21,14 @@ services:
       - ./flask_session:/app/flask_session
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000')"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   session-cleanup:
-    image: alpine:3
+    image: alpine:3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
     volumes:
       - ./flask_session:/flask_session
     restart: unless-stopped

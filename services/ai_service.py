@@ -128,9 +128,16 @@ class AIService:
         resume_summary = Prompts.build_resume_summary(
             experiences, bullets, skills, education
         )
+        # ~125K token ceiling; generous for any real resume but prevents runaway API costs
+        _MAX_RESUME_CHARS = 500_000
+        if len(resume_summary) > _MAX_RESUME_CHARS:
+            raise ValueError(
+                f"Resume data is too large to analyze ({len(resume_summary):,} characters). "
+                "Please reduce the number of bullets or experiences and try again."
+            )
         prompt = Prompts.job_matching(job, resume_summary)
         response = self._call_claude(prompt)
-        current_app.logger.debug("Raw tailor analysis response: %s", response)
+        current_app.logger.debug("Tailor analysis response received (%d chars)", len(response))
         result = self._parse_json_response(response)
         return result
     
