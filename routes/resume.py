@@ -696,6 +696,147 @@ def delete_bullet_group(group_id):
 
 
 # ============================================================================
+# BULLET VARIANT GENERATOR
+# ============================================================================
+
+@bp.route('/bullets/variants', methods=['GET'])
+def bullet_variants_page():
+    """Bullet variant generator — pick a bullet (or write one) and get AI rewrites"""
+    bullets = Bullet.get_all()
+    experiences = Experience.get_all()
+    return render_template('bullet_variants.html', bullets=bullets, experiences=experiences)
+
+
+@bp.route('/bullets/generate-variants', methods=['POST'])
+@limiter.limit("10/hour")
+def generate_bullet_variants():
+    """Call AI to generate variant wordings for a bullet"""
+    source_text = request.form.get('source_text', '').strip()
+    source_bullet_id_str = request.form.get('source_bullet_id', '').strip()
+    experience_id_str = request.form.get('experience_id', '').strip()
+    count_str = request.form.get('count', '3')
+
+    try:
+        count = max(1, min(10, int(count_str)))
+    except (ValueError, TypeError):
+        count = 3
+
+    if not source_text:
+        flash('Please provide a bullet text to generate variants from', 'error')
+        return redirect(url_for('resume.bullet_variants_page'))
+
+    # Resolve IDs and experience context
+    source_bullet_id = None
+    source_bullet_group_id = None
+    experience_id = None
+    experience_context = None
+
+    if source_bullet_id_str.isdigit():
+        source_bullet_id = int(source_bullet_id_str)
+        bullet = Bullet.get_by_id(source_bullet_id)
+        if bullet:
+            source_bullet_group_id = bullet['group_id']
+            experience_id = bullet['experience_id']
+            if experience_id:
+                exp = Experience.get_by_id(experience_id)
+                if exp:
+                    experience_context = f"{exp['job_title']} at {exp['company_name']}"
+    elif experience_id_str.isdigit():
+        experience_id = int(experience_id_str)
+        exp = Experience.get_by_id(experience_id)
+        if exp:
+            experience_context = f"{exp['job_title']} at {exp['company_name']}"
+
+    try:
+        ai = get_ai_service()
+        variants = ai.generate_bullet_variants(source_text, count, experience_context)
+    except Exception:
+        current_app.logger.exception("Failed to generate bullet variants")
+        flash('Variant generation failed — please try again', 'error')
+        return redirect(url_for('resume.bullet_variants_page'))
+
+    bullets = Bullet.get_all()
+    experiences = Experience.get_all()
+    return render_template(
+        'bullet_variants.html',
+        bullets=bullets,
+        experiences=experiences,
+        variants=variants,
+        source_text=source_text,
+        source_bullet_id=source_bullet_id,
+        source_bullet_group_id=source_bullet_group_id,
+        experience_id=experience_id,
+        count=count,
+    )
+
+
+@bp.route('/bullets/save-variants', methods=['POST'])
+def save_bullet_variants():
+    """Save selected bullet variants (and optionally the original) to the library"""
+    source_text = request.form.get('source_text', '').strip()
+    source_bullet_id_str = request.form.get('source_bullet_id', '').strip()
+    experience_id_str = request.form.get('experience_id', '').strip()
+    include_original = request.form.get('include_original') == '1'
+    selected_variants = [v.strip() for v in request.form.getlist('selected_variants') if v.strip()]
+
+    source_bullet_id = int(source_bullet_id_str) if source_bullet_id_str.isdigit() else None
+    experience_id = int(experience_id_str) if experience_id_str.isdigit() else None
+
+    if not selected_variants and not include_original:
+        flash('Select at least one variant (or include the original) to save', 'error')
+        return redirect(url_for('resume.bullet_variants_page'))
+
+    with get_db_context() as (conn, cursor):
+        # Check if the source bullet already belongs to a group
+        existing_group_id = None
+        if source_bullet_id:
+            cursor.execute('SELECT group_id FROM bullets WHERE id = ?', (source_bullet_id,))
+            row = cursor.fetchone()
+            if row:
+                existing_group_id = row['group_id']
+
+        if existing_group_id:
+            # Extend the existing group — new variants join it with is_group_default=0
+            group_id = existing_group_id
+        else:
+            # Create a new bullet group
+            label = source_text[:60] + ('...' if len(source_text) > 60 else '')
+            cursor.execute('INSERT INTO bullet_groups (label) VALUES (?)', (label,))
+            group_id = cursor.lastrowid
+
+            if include_original:
+                if source_bullet_id:
+                    # Assign the existing library bullet to the new group as default
+                    cursor.execute(
+                        'UPDATE bullets SET group_id = ?, is_group_default = 1 WHERE id = ?',
+                        (group_id, source_bullet_id)
+                    )
+                else:
+                    # Create a new bullet for the typed original text
+                    cursor.execute(
+                        'INSERT INTO bullets (experience_id, bullet_text, template_text, group_id, is_group_default)'
+                        ' VALUES (?, ?, ?, ?, 1)',
+                        (experience_id, source_text, source_text, group_id)
+                    )
+
+        # Add selected variants — first one is default only if original is not in the group
+        original_in_group = include_original or bool(existing_group_id)
+        first = True
+        for variant_text in selected_variants:
+            is_default = 1 if (first and not original_in_group) else 0
+            cursor.execute(
+                'INSERT INTO bullets (experience_id, bullet_text, template_text, group_id, is_group_default)'
+                ' VALUES (?, ?, ?, ?, ?)',
+                (experience_id, variant_text, variant_text, group_id, is_default)
+            )
+            first = False
+
+    saved = len(selected_variants) + (1 if (include_original and not existing_group_id) else 0)
+    flash(f'Saved {saved} bullet(s) to variant group', 'success')
+    return redirect(url_for('resume.view_resume') + '#bullets-section')
+
+
+# ============================================================================
 # SKILL CRUD
 # ============================================================================
 

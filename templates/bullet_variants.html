@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% from 'macros/forms.html' import submit_button %}
+
+{% block title %}Generate Bullet Variants - Resume Tailor{% endblock %}
+
+{% block page_header %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+        <h1>Generate Bullet Variants</h1>
+        <a href="{{ url_for('resume.view_resume') }}#bullets-section" class="btn btn-secondary">
+            ← Back to Resume
+        </a>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+{# ── Generator Form ── #}
+<div class="card" style="margin-bottom: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">Source Bullet</h3>
+        <p style="margin: var(--spacing-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+            Choose an existing bullet from your library, or write one from scratch.
+        </p>
+    </div>
+    <div class="card-body">
+
+        {# Tabs #}
+        <div style="display: flex; gap: 0; border-bottom: 2px solid var(--color-border); margin-bottom: var(--spacing-lg);">
+            <button type="button" id="tabLibrary" onclick="switchTab('library')"
+                    style="padding: var(--spacing-sm) var(--spacing-md); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: var(--font-weight-bold); color: var(--color-text-muted);">
+                From Library
+            </button>
+            <button type="button" id="tabScratch" onclick="switchTab('scratch')"
+                    style="padding: var(--spacing-sm) var(--spacing-md); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: var(--font-weight-bold); color: var(--color-text-muted);">
+                From Scratch
+            </button>
+        </div>
+
+        {# Library Tab #}
+        <div id="panelLibrary">
+            <form method="POST" action="{{ url_for('resume.generate_bullet_variants') }}" id="formLibrary">
+                {{ csrf_input() }}
+                <input type="hidden" name="source_bullet_id" id="libraryBulletId">
+                <input type="hidden" name="source_text" id="librarySourceText">
+                <div class="form-group">
+                    <label class="form-label">Select Bullet</label>
+                    <select class="form-select" id="libraryBulletSelect" onchange="onLibraryBulletChange()">
+                        <option value="">-- Select a bullet --</option>
+                        {% set current_exp = namespace(id=-1) %}
+                        {% for bullet in bullets %}
+                            {% set exp_id = bullet['experience_id'] %}
+                            {% if exp_id != current_exp.id %}
+                                {% if current_exp.id != -1 %}</optgroup>{% endif %}
+                                <optgroup label="{{ bullet['job_title'] or 'Standalone' }}{% if bullet['company_name'] %} at {{ bullet['company_name'] }}{% endif %}">
+                                {% set current_exp.id = exp_id %}
+                            {% endif %}
+                            <option value="{{ bullet['id'] }}"
+                                    data-text="{{ bullet['bullet_text'] | replace('"', '&quot;') }}"
+                                    data-group="{{ bullet['group_id'] or '' }}">
+                                {{ bullet['bullet_text'][:80] }}{% if bullet['bullet_text']|length > 80 %}…{% endif %}
+                            </option>
+                        {% endfor %}
+                        {% if bullets %}</optgroup>{% endif %}
+                    </select>
+                </div>
+                <div id="libraryBulletPreview" style="display: none; margin-bottom: var(--spacing-md); padding: var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); border-left: 3px solid var(--color-primary);">
+                    <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-xs);">Selected bullet:</div>
+                    <div id="libraryBulletPreviewText"></div>
+                    <div id="libraryGroupNote" style="display: none; margin-top: var(--spacing-xs); font-size: var(--font-size-sm); color: var(--color-warning);">
+                        This bullet already belongs to a variant group — new variants will be added to that group.
+                    </div>
+                </div>
+                <div class="form-group" style="max-width: 160px;">
+                    <label class="form-label">Number of Variants</label>
+                    <input type="number" name="count" class="form-input"
+                           value="{{ count or 3 }}" min="1" max="10">
+                </div>
+                <button type="submit" class="btn btn-primary" id="libraryGenerateBtn" disabled>Generate Variants</button>
+            </form>
+        </div>
+
+        {# Scratch Tab #}
+        <div id="panelScratch" style="display: none;">
+            <form method="POST" action="{{ url_for('resume.generate_bullet_variants') }}" id="formScratch">
+                {{ csrf_input() }}
+                <div class="form-group">
+                    <label class="form-label">Bullet Text</label>
+                    <textarea name="source_text" class="form-input" rows="3"
+                              placeholder="e.g., Led cross-functional team to deliver product launch on time and under budget"
+                              required>{{ source_text if source_text and not source_bullet_id else '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Link to Experience <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
+                    <select name="experience_id" class="form-select">
+                        <option value="">-- Standalone bullet --</option>
+                        {% for exp in experiences %}
+                            <option value="{{ exp.id }}"
+                                {% if experience_id and not source_bullet_id and experience_id == exp.id %}selected{% endif %}>
+                                {{ exp.job_title }} at {{ exp.company_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="max-width: 160px;">
+                    <label class="form-label">Number of Variants</label>
+                    <input type="number" name="count" class="form-input"
+                           value="{{ count or 3 }}" min="1" max="10">
+                </div>
+                <button type="submit" class="btn btn-primary">Generate Variants</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{# ── Results ── #}
+{% if variants is defined %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Generated Variants</h3>
+        <p style="margin: var(--spacing-xs) 0 0; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+            Select the variants you want to add to your library, then click Save.
+        </p>
+    </div>
+    <div class="card-body">
+
+        {# Source reference #}
+        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-bg-light); border-radius: var(--border-radius); border-left: 3px solid var(--color-info);">
+            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-xs);">Source bullet:</div>
+            <div>{{ source_text }}</div>
+        </div>
+
+        {% if variants %}
+        <form method="POST" action="{{ url_for('resume.save_bullet_variants') }}">
+            {{ csrf_input() }}
+            <input type="hidden" name="source_text" value="{{ source_text }}">
+            <input type="hidden" name="source_bullet_id" value="{{ source_bullet_id or '' }}">
+            <input type="hidden" name="experience_id" value="{{ experience_id or '' }}">
+
+            {# Variant checkboxes #}
+            <div style="margin-bottom: var(--spacing-lg);">
+                {% for variant in variants %}
+                <label style="display: flex; align-items: flex-start; gap: var(--spacing-sm); padding: var(--spacing-md); margin-bottom: var(--spacing-sm); background: var(--color-bg-light); border-radius: var(--border-radius); cursor: pointer; border: 2px solid transparent;"
+                       class="variant-label">
+                    <input type="checkbox" name="selected_variants" value="{{ variant }}"
+                           style="margin-top: 3px; flex-shrink: 0;"
+                           onchange="updateVariantStyle(this)">
+                    <span>{{ variant }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {# Include original option #}
+            {% if not source_bullet_group_id %}
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--border-radius);">
+                <label style="display: flex; align-items: flex-start; gap: var(--spacing-sm); cursor: pointer;">
+                    <input type="checkbox" name="include_original" value="1" style="margin-top: 3px; flex-shrink: 0;">
+                    <div>
+                        <div style="font-weight: var(--font-weight-bold);">Include original in group</div>
+                        <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+                            {% if source_bullet_id %}
+                                The source bullet from your library will be added to the variant group as the default.
+                            {% else %}
+                                The source text above will also be saved to your library as part of the group.
+                            {% endif %}
+                        </div>
+                    </div>
+                </label>
+            </div>
+            {% else %}
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-sm) var(--spacing-md); background: var(--color-info-light); border-radius: var(--border-radius); font-size: var(--font-size-sm); color: var(--color-info-dark);">
+                Selected variants will be added to the source bullet's existing variant group.
+            </div>
+            {% endif %}
+
+            <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                <button type="submit" class="btn btn-primary">Save Selected</button>
+                <a href="{{ url_for('resume.bullet_variants_page') }}" class="btn btn-secondary">Generate Again</a>
+            </div>
+        </form>
+
+        {% else %}
+        <p style="color: var(--color-text-muted); text-align: center; padding: var(--spacing-lg);">
+            No variants were returned. Please try again.
+        </p>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab switching
+function switchTab(tab) {
+    const isLibrary = tab === 'library';
+    document.getElementById('panelLibrary').style.display = isLibrary ? '' : 'none';
+    document.getElementById('panelScratch').style.display = isLibrary ? 'none' : '';
+    document.getElementById('tabLibrary').style.borderBottomColor = isLibrary ? 'var(--color-primary)' : 'transparent';
+    document.getElementById('tabLibrary').style.color = isLibrary ? 'var(--color-primary)' : 'var(--color-text-muted)';
+    document.getElementById('tabScratch').style.borderBottomColor = isLibrary ? 'transparent' : 'var(--color-primary)';
+    document.getElementById('tabScratch').style.color = isLibrary ? 'var(--color-text-muted)' : 'var(--color-primary)';
+}
+
+// Library bullet selection
+function onLibraryBulletChange() {
+    const select = document.getElementById('libraryBulletSelect');
+    const opt = select.options[select.selectedIndex];
+    const preview = document.getElementById('libraryBulletPreview');
+    const previewText = document.getElementById('libraryBulletPreviewText');
+    const groupNote = document.getElementById('libraryGroupNote');
+    const generateBtn = document.getElementById('libraryGenerateBtn');
+    const bulletIdInput = document.getElementById('libraryBulletId');
+    const sourceTextInput = document.getElementById('librarySourceText');
+
+    if (!opt.value) {
+        preview.style.display = 'none';
+        generateBtn.disabled = true;
+        return;
+    }
+
+    bulletIdInput.value = opt.value;
+    sourceTextInput.value = opt.dataset.text;
+    previewText.textContent = opt.dataset.text;
+    groupNote.style.display = opt.dataset.group ? '' : 'none';
+    preview.style.display = '';
+    generateBtn.disabled = false;
+}
+
+// Highlight selected variant cards
+function updateVariantStyle(checkbox) {
+    const label = checkbox.closest('label');
+    label.style.borderColor = checkbox.checked ? 'var(--color-primary)' : 'transparent';
+    label.style.background = checkbox.checked ? 'var(--color-primary-light, var(--color-bg-light))' : 'var(--color-bg-light)';
+}
+
+// On load: activate the right tab
+(function() {
+    const hasResults = {{ 'true' if variants is defined else 'false' }};
+    const hasSourceBulletId = {{ 'true' if source_bullet_id else 'false' }};
+    // If results came from library mode, stay on library tab; scratch otherwise
+    switchTab(hasSourceBulletId || !hasResults ? 'library' : 'scratch');
+})();
+</script>
+{% endblock %}

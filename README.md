@@ -9,6 +9,7 @@ An AI-powered job application tracking system that helps you manage job postings
 - **Resume Import**: Upload your existing resume and let AI extract and organize all components
 - **AI-Powered Matching**: Get intelligent recommendations on which resume components to use for each job
 - **Smart Suggestions**: Receive AI suggestions for alternate job titles, improved bullet points, and additional skills
+- **Bullet Variant Generator**: Generate multiple AI-reworded versions of any bullet point, then selectively save them to your library as a grouped set of alternates
 - **Application Tracking**: Keep track of saved job postings and match analyses
 - **Export Profiles**: Create reusable export profiles with rules to transform your resume (rename categories, merge/split skill groups, reorder sections, use alternate titles, anonymize company names) and a personal header (name, contact info) — all applied at export time without modifying your source data
 - **Multiple Export Formats**: Export resumes as TXT, Markdown, HTML, DOCX, or PDF
@@ -140,6 +141,18 @@ python app.py
    - Which bullets are most relevant
    - Which skills to highlight
    - Overall positioning strategy
+
+### Generating Bullet Variants
+
+1. Go to "Components" → click **✦ Variants** in the Bullets section header
+2. Choose a source:
+   - **From Library**: pick an existing bullet from a dropdown (grouped by experience)
+   - **From Scratch**: type a new bullet and optionally link it to an experience
+3. Set how many variants to generate (default: 3, max: 10)
+4. Click **Generate Variants** — AI rewrites the bullet with different phrasing, verbs, and structure
+5. Check the variants you want to keep, optionally include the original in the group, then **Save Selected**
+
+Saved variants are stored as a bullet group — during export the group default is shown, but you can swap in any alternate at any time from the Resume page.
 
 ### Managing AI Suggestions
 

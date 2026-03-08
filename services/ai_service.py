@@ -148,6 +148,16 @@ class AIService:
         result = self._parse_json_response(response)
         return result
 
+    def generate_bullet_variants(self, bullet_text, count, experience_context=None):
+        """Generate alternative wordings for a resume bullet point"""
+        prompt = Prompts.bullet_variants(bullet_text, count, experience_context)
+        response = self._call_claude(prompt, max_tokens=1024)
+        parsed = self._parse_json_response(response)
+        variants = parsed.get('variants', [])
+        if not isinstance(variants, list):
+            raise ValueError("AI returned unexpected format for bullet variants")
+        return [str(v).strip() for v in variants if str(v).strip()]
+
     def cleanup_skill_categories(self, skills):
         """Analyze skills and suggest category consolidation"""
         # Build skills data string
