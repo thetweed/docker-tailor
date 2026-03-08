@@ -3,6 +3,7 @@ AI Service - All Claude API interactions
 """
 import json
 import re
+import anthropic
 from anthropic import Anthropic
 from flask import current_app, g
 from utils.prompts import Prompts
@@ -28,9 +29,23 @@ class AIService:
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}]
             )
+            if not message.content:
+                raise ValueError("Claude API returned an empty response")
             return message.content[0].text
-        except Exception as e:
-            current_app.logger.error(f"Claude API error: {e}")
+        except anthropic.APITimeoutError:
+            current_app.logger.error("Claude API request timed out")
+            raise
+        except anthropic.RateLimitError:
+            current_app.logger.error("Claude API rate limit exceeded")
+            raise
+        except anthropic.AuthenticationError:
+            current_app.logger.error("Claude API authentication failed — check ANTHROPIC_API_KEY")
+            raise
+        except anthropic.APIConnectionError as e:
+            current_app.logger.error("Claude API connection error: %s", e)
+            raise
+        except anthropic.APIStatusError as e:
+            current_app.logger.error("Claude API error %s: %s", e.status_code, e.message)
             raise
     
     def _parse_json_response(self, response_text):

@@ -2,6 +2,7 @@
 File Helper Utilities - Resume file upload and text extraction
 """
 import os
+import uuid
 from werkzeug.utils import secure_filename
 from flask import current_app
 import pypdf
