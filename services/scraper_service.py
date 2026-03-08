@@ -71,6 +71,8 @@ class ScraperService:
                 headless=True,
                 args=['--disable-blink-features=AutomationControlled']
             )
+            context = None
+            page = None
             try:
                 context = browser.new_context(
                     user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -92,6 +94,10 @@ class ScraperService:
                 text_content = page.evaluate("() => document.body.innerText")
                 return html_content, text_content
             finally:
+                if page is not None:
+                    page.close()
+                if context is not None:
+                    context.close()
                 browser.close()
     
     @staticmethod

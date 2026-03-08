@@ -40,8 +40,7 @@ def apply_suggestion(sugg_id):
     sugg_type = suggestion['suggestion_type']
     component_id = suggestion['component_id']
     suggested_text = suggestion['suggested_text']
-    action = request.form.get('action', 'replace')
-    
+
     # Map types to return sections
     section_map = {
         Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'titles-section',
@@ -82,6 +81,7 @@ def apply_suggestion(sugg_id):
                 )
         
         elif sugg_type == Suggestion.TYPE_BULLET_IMPROVEMENT:
+            action = request.form.get('action', 'replace')
             original = Bullet.get_by_id(component_id)
             if not original:
                 flash('The bullet this suggestion was for no longer exists.', 'error')
