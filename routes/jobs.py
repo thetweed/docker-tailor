@@ -138,6 +138,48 @@ def add_job():
     return render_template('add_job.html')
 
 
+@bp.route('/add-manual', methods=['GET', 'POST'])
+def add_job_manual():
+    """Add a job posting by entering details manually (no scraping)"""
+    if request.method == 'POST':
+        url = request.form.get('url', '').strip()
+        company = request.form.get('company', '').strip()
+        title = request.form.get('title', '').strip()
+        location = request.form.get('location', '').strip()
+        compensation = request.form.get('compensation', '').strip()
+        date_posted = request.form.get('date_posted', '').strip()
+        requirements = request.form.get('requirements', '').strip()
+
+        if not url or not company or not title or not requirements:
+            flash('URL, company, job title, and requirements are required', 'error')
+            return redirect(url_for('jobs.add_job_manual'))
+
+        if urlparse(url).scheme not in ('http', 'https'):
+            flash('Only http:// and https:// URLs are supported', 'error')
+            return redirect(url_for('jobs.add_job_manual'))
+
+        if Job.exists(url):
+            flash('This job posting has already been added', 'warning')
+            return redirect(url_for('jobs.list_jobs'))
+
+        job_id = Job.create(
+            url=url,
+            raw_html='',
+            raw_text=requirements,
+            company_name=company,
+            job_title=title,
+            location=location,
+            compensation=compensation,
+            date_posted=date_posted,
+            requirements=requirements,
+        )
+
+        flash(f'Job added: {title} at {company}', 'success')
+        return redirect(url_for('jobs.view_job', job_id=job_id))
+
+    return render_template('add_job_manual.html')
+
+
 @bp.route('/<int:job_id>/delete', methods=['POST'])
 def delete_job(job_id):
     """Delete a job and its associated tailor analyses"""

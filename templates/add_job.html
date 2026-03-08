@@ -26,6 +26,9 @@
                         Add & Analyze Job
                     </button>
                     {{ cancel_button(url_for('jobs.list_jobs'), 'Cancel') }}
+                    <a href="{{ url_for('jobs.add_job_manual') }}" class="btn btn-secondary" style="margin-left: var(--spacing-sm);">
+                        Add Manually Instead
+                    </a>
                 </div>
                 
                 <!-- Loading indicator (hidden by default) -->
