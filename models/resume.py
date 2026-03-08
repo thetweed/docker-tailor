@@ -56,7 +56,7 @@ class Experience:
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM bullets WHERE experience_id = ?', (exp_id,))
             cursor.execute('DELETE FROM experiences WHERE id = ?', (exp_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
     
     @staticmethod
     def count():
@@ -147,7 +147,7 @@ class Bullet:
                     (row['group_id'], bullet_id)
                 )
             cursor.execute('DELETE FROM bullets WHERE id = ?', (bullet_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
 
     @staticmethod
     def set_group(bullet_id, group_id, is_default):
@@ -235,7 +235,7 @@ class Skill:
         """Delete a skill"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM skills WHERE id = ?', (skill_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
     
     @staticmethod
     def count():
@@ -302,7 +302,7 @@ class Education:
         """Delete an education entry"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM education WHERE id = ?', (edu_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
     
     @staticmethod
     def count():
@@ -353,3 +353,4 @@ class BulletGroup:
                 (group_id,)
             )
             cursor.execute('DELETE FROM bullet_groups WHERE id = ?', (group_id,))
+            return cursor.rowcount

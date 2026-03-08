@@ -79,7 +79,7 @@ class TailorAnalysis:
         """Delete a single analysis"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM tailor_analyses WHERE id = ?', (analysis_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
 
     @staticmethod
     def delete_by_job_id(job_id):

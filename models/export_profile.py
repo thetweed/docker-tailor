@@ -108,7 +108,7 @@ class ExportProfile:
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM export_rules WHERE profile_id = ?', (profile_id,))
             cursor.execute('DELETE FROM export_profiles WHERE id = ?', (profile_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
 
     @staticmethod
     def set_default(profile_id):
@@ -254,7 +254,7 @@ class ExportProfile:
                     'UPDATE export_profiles SET date_modified = CURRENT_TIMESTAMP WHERE id = ?',
                     (profile_id,))
 
-            return cursor.rowcount > 0
+            return cursor.rowcount
 
     @staticmethod
     def toggle_rule(rule_id):

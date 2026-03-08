@@ -102,7 +102,7 @@ class Job:
         """Delete a job"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM jobs WHERE id = ?', (job_id,))
-            return cursor.rowcount > 0
+            return cursor.rowcount
     
     @staticmethod
     def exists(url):
