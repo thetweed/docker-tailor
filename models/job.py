@@ -62,19 +62,17 @@ class Job:
             where = 'WHERE company_name LIKE ? OR job_title LIKE ? OR location LIKE ?'
             params = [f'%{search}%', f'%{search}%', f'%{search}%']
 
-        # Get total count
-        cursor.execute('SELECT COUNT(*) FROM jobs ' + where, params)
-        total = cursor.fetchone()[0]
-
-        # Get paginated results
+        # Single query: window function counts matching rows before LIMIT is applied
         offset = (page - 1) * per_page
         cursor.execute(
-            'SELECT id, company_name, job_title, location, compensation, date_added '
+            'SELECT id, company_name, job_title, location, compensation, date_added, '
+            'COUNT(*) OVER() AS total_count '
             'FROM jobs ' + where + ' ORDER BY date_added DESC LIMIT ? OFFSET ?',
             params + [per_page, offset]
         )
-
-        return cursor.fetchall(), total
+        rows = cursor.fetchall()
+        total = rows[0]['total_count'] if rows else 0
+        return rows, total
     
     @staticmethod
     def get_recent(limit=5):
