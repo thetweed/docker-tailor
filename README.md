@@ -322,14 +322,10 @@ All tables are created automatically on first run.
 - Your browser has a stale session cookie pointing to a session file that no longer exists
 - Clear cookies for `localhost:8080` (or your app URL) in your browser and reload
 
-### Template/URL errors
-- If you see `BuildError`, make sure all templates use the new blueprint URLs
-- Example: `url_for('jobs')` should be `url_for('jobs.list_jobs')`
-
 ## 📝 Tips for Best Results
 
 1. **Resume Import**: Use a well-formatted resume with clear sections
-2. **Job Scraping**: Works best with standard ATS sites; some sites (like LinkedIn) may block scraping
+2. **Job Scraping**: Works best with standard ATS sites; some sites (like LinkedIn) may block scraping; can add jobs manually as well
 3. **Bullet Points**: More specific bullets = better AI suggestions
 4. **Skills**: Add both hard skills (tools/tech) and soft skills
 5. **Matching**: Review AI suggestions critically - they're helpful but not perfect
@@ -354,22 +350,9 @@ python app.py  # Debug mode is default
 # - Utils: Reusable helpers
 ```
 
-### Code Style
-
-- Follow PEP 8
-- Use meaningful variable names
-- Add docstrings to functions
-- Keep functions focused (single responsibility)
-- Use type hints where helpful
-
 ## 📄 License
 
 This project is for personal use. Feel free to modify for your own job search.
-
-## 🙏 Acknowledgments
-
-- Built with assistance from [Anthropic Claude](https://www.anthropic.com/claude)
-- Inspired by the tedious process of tailoring resumes for every job application
 
 ## 📧 Support
 
