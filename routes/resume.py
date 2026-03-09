@@ -593,12 +593,15 @@ def add_bullet():
 def edit_bullet(bullet_id):
     """Edit a bullet"""
     if request.method == 'POST':
+        exp_id_str = request.form.get('experience_id', '')
+        experience_id = int(exp_id_str) if exp_id_str else None
         if not Bullet.update(
             bullet_id,
             bullet_text=request.form['bullet_text'],
             template_text=request.form.get('template_text', ''),
             tags=request.form.get('tags', ''),
-            category=request.form.get('category', '')
+            category=request.form.get('category', ''),
+            experience_id=experience_id
         ):
             flash('Bullet not found', 'error')
             return redirect(url_for('resume.view_resume'))
@@ -628,7 +631,8 @@ def edit_bullet(bullet_id):
         return redirect(url_for('resume.view_resume'))
 
     groups = BulletGroup.get_all()
-    return render_template('edit_bullet.html', bullet=bullet, groups=groups)
+    experiences = Experience.get_all()
+    return render_template('edit_bullet.html', bullet=bullet, groups=groups, experiences=experiences)
 
 
 @bp.route('/bullet/<int:bullet_id>/delete', methods=['POST'])

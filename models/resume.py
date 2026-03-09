@@ -140,14 +140,14 @@ class Bullet:
         return cursor.fetchall()
     
     @staticmethod
-    def update(bullet_id, bullet_text, template_text, tags, category):
+    def update(bullet_id, bullet_text, template_text, tags, category, experience_id=None):
         """Update a bullet"""
         with get_db_context() as (conn, cursor):
             cursor.execute('''
-                UPDATE bullets 
-                SET bullet_text = ?, template_text = ?, tags = ?, category = ?
+                UPDATE bullets
+                SET bullet_text = ?, template_text = ?, tags = ?, category = ?, experience_id = ?
                 WHERE id = ?
-            ''', (bullet_text, template_text, tags, category, bullet_id))
+            ''', (bullet_text, template_text, tags, category, experience_id, bullet_id))
             return cursor.rowcount > 0
     
     @staticmethod
