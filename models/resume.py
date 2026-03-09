@@ -69,13 +69,19 @@ class Experience:
     @staticmethod
     def exists(company_name, job_title):
         """Return True if an experience with matching company and title already exists (case-insensitive)"""
+        return Experience.get_existing_id(company_name, job_title) is not None
+
+    @staticmethod
+    def get_existing_id(company_name, job_title):
+        """Return the id of a matching experience, or None (case-insensitive)"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "SELECT id FROM experiences WHERE LOWER(company_name) = LOWER(?) AND LOWER(job_title) = LOWER(?)",
             (company_name, job_title)
         )
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+        return row['id'] if row else None
 
     @staticmethod
     def delete_all():
@@ -195,13 +201,19 @@ class Bullet:
     @staticmethod
     def exists(bullet_text):
         """Return True if a bullet with matching text already exists (case-insensitive)"""
+        return Bullet.get_existing_id(bullet_text) is not None
+
+    @staticmethod
+    def get_existing_id(bullet_text):
+        """Return the id of a matching bullet, or None (case-insensitive)"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "SELECT id FROM bullets WHERE LOWER(bullet_text) = LOWER(?)",
             (bullet_text,)
         )
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+        return row['id'] if row else None
 
     @staticmethod
     def delete_all():
@@ -282,13 +294,19 @@ class Skill:
     @staticmethod
     def exists(skill_name):
         """Return True if a skill with matching name already exists (case-insensitive)"""
+        return Skill.get_existing_id(skill_name) is not None
+
+    @staticmethod
+    def get_existing_id(skill_name):
+        """Return the id of a matching skill, or None (case-insensitive)"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "SELECT id FROM skills WHERE LOWER(skill_name) = LOWER(?)",
             (skill_name,)
         )
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+        return row['id'] if row else None
 
     @staticmethod
     def delete_all():
@@ -360,6 +378,11 @@ class Education:
     @staticmethod
     def exists(school_name, degree, field_of_study):
         """Return True if a matching education entry already exists (case-insensitive)"""
+        return Education.get_existing_id(school_name, degree, field_of_study) is not None
+
+    @staticmethod
+    def get_existing_id(school_name, degree, field_of_study):
+        """Return the id of a matching education entry, or None (case-insensitive)"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
@@ -367,7 +390,8 @@ class Education:
             "AND LOWER(degree) = LOWER(?) AND LOWER(field_of_study) = LOWER(?)",
             (school_name, degree, field_of_study)
         )
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+        return row['id'] if row else None
 
     @staticmethod
     def delete_all():

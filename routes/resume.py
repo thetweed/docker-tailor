@@ -185,6 +185,29 @@ def review_import():
 
 
 
+def _import_or_skip(stats, key, get_existing_id_fn, create_fn, result_map=None, map_key=None):
+    """Check for a duplicate, skip or create, and optionally record the id in result_map.
+
+    Args:
+        stats: the stats dict (mutated in-place)
+        key: base key e.g. 'experiences' — increments stats['{key}_skipped'] or '{key}_added'
+        get_existing_id_fn: callable returning the existing row id or None
+        create_fn: callable that inserts the row and returns its new id
+        result_map: optional dict to record {map_key: id}
+        map_key: key to use when writing into result_map
+    """
+    existing_id = get_existing_id_fn()
+    if existing_id is not None:
+        stats[f'{key}_skipped'] += 1
+        if result_map is not None:
+            result_map[map_key] = existing_id
+    else:
+        new_id = create_fn()
+        stats[f'{key}_added'] += 1
+        if result_map is not None:
+            result_map[map_key] = new_id
+
+
 def _save_suggestions(suggestions_data, experience_map, bullet_map):
     """Save AI suggestions to the database.
 
@@ -384,79 +407,59 @@ def save_import():
             'education_skipped': 0
         }
 
-        # Save experiences (skip duplicates)
+        # Save experiences (skip duplicates, map company → id for bullet FK)
         for exp in parsed_data.get('experiences', []):
-            if Experience.exists(exp['company'], exp['title']):
-                stats['experiences_skipped'] += 1
-                # Still map for bullet relationships, but get existing ID
-                with get_db_context() as (conn, cursor):
-                    cursor.execute(
-                        "SELECT id FROM experiences WHERE LOWER(company_name) = LOWER(?) AND LOWER(job_title) = LOWER(?)",
-                        (exp['company'], exp['title'])
-                    )
-                    result = cursor.fetchone()
-                    if result:
-                        experience_map[exp['company']] = result['id']
-            else:
-                exp_id = Experience.create(
-                    company_name=exp['company'],
-                    job_title=exp['title'],
-                    start_date=exp.get('start_date', ''),
-                    end_date=exp.get('end_date', ''),
-                    location=exp.get('location', ''),
-                    description=exp.get('description', '')
-                )
-                experience_map[exp['company']] = exp_id
-                stats['experiences_added'] += 1
+            _import_or_skip(
+                stats, 'experiences',
+                lambda e=exp: Experience.get_existing_id(e['company'], e['title']),
+                lambda e=exp: Experience.create(
+                    company_name=e['company'],
+                    job_title=e['title'],
+                    start_date=e.get('start_date', ''),
+                    end_date=e.get('end_date', ''),
+                    location=e.get('location', ''),
+                    description=e.get('description', '')
+                ),
+                result_map=experience_map,
+                map_key=exp['company'],
+            )
 
-        # Save bullets (skip duplicates)
+        # Save bullets (skip duplicates, map text → id for suggestions)
         for bullet in parsed_data.get('bullets', []):
-            if Bullet.exists(bullet['text']):
-                stats['bullets_skipped'] += 1
-                # Still map for suggestions
-                with get_db_context() as (conn, cursor):
-                    cursor.execute(
-                        "SELECT id FROM bullets WHERE LOWER(bullet_text) = LOWER(?)",
-                        (bullet['text'],)
-                    )
-                    result = cursor.fetchone()
-                    if result:
-                        bullet_map[bullet['text']] = result['id']
-            else:
-                exp_id = experience_map.get(bullet.get('experience_company'))
-                bullet_id = Bullet.create(
-                    bullet_text=bullet['text'],
-                    experience_id=exp_id,
-                    tags=bullet.get('tags', ''),
-                    category=bullet.get('category', '')
-                )
-                bullet_map[bullet['text']] = bullet_id
-                stats['bullets_added'] += 1
+            _import_or_skip(
+                stats, 'bullets',
+                lambda b=bullet: Bullet.get_existing_id(b['text']),
+                lambda b=bullet: Bullet.create(
+                    bullet_text=b['text'],
+                    experience_id=experience_map.get(b.get('experience_company')),
+                    tags=b.get('tags', ''),
+                    category=b.get('category', '')
+                ),
+                result_map=bullet_map,
+                map_key=bullet['text'],
+            )
 
         # Save skills (skip duplicates)
         for skill in parsed_data.get('skills', []):
-            if Skill.exists(skill['name']):
-                stats['skills_skipped'] += 1
-            else:
-                Skill.create(
-                    skill_name=skill['name'],
-                    category=skill.get('category', '')
-                )
-                stats['skills_added'] += 1
+            _import_or_skip(
+                stats, 'skills',
+                lambda s=skill: Skill.get_existing_id(s['name']),
+                lambda s=skill: Skill.create(skill_name=s['name'], category=s.get('category', '')),
+            )
 
         # Save education (skip duplicates)
         for edu in parsed_data.get('education', []):
-            if Education.exists(edu['school'], edu.get('degree', ''), edu.get('field', '')):
-                stats['education_skipped'] += 1
-            else:
-                Education.create(
-                    school_name=edu['school'],
-                    degree=edu.get('degree', ''),
-                    field_of_study=edu.get('field', ''),
-                    graduation_year=edu.get('graduation_year', ''),
-                    location=edu.get('location', '')
-                )
-                stats['education_added'] += 1
+            _import_or_skip(
+                stats, 'education',
+                lambda e=edu: Education.get_existing_id(e['school'], e.get('degree', ''), e.get('field', '')),
+                lambda e=edu: Education.create(
+                    school_name=e['school'],
+                    degree=e.get('degree', ''),
+                    field_of_study=e.get('field', ''),
+                    graduation_year=e.get('graduation_year', ''),
+                    location=e.get('location', '')
+                ),
+            )
 
         # Save AI suggestions
         suggestion_count = _save_suggestions(suggestions_data, experience_map, bullet_map)
