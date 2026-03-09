@@ -3,6 +3,7 @@ Job Routes - Job posting management with caching
 """
 import ipaddress
 import socket
+import sqlite3
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from urllib.parse import urlparse
 from models import Job
@@ -158,21 +159,29 @@ def add_job_manual():
             flash('Only http:// and https:// URLs are supported', 'error')
             return redirect(url_for('jobs.add_job_manual'))
 
-        if Job.exists(url):
-            flash('This job posting has already been added', 'warning')
-            return redirect(url_for('jobs.list_jobs'))
+        if not _is_safe_url(url):
+            flash('That URL cannot be used — it resolves to a private or reserved address.', 'error')
+            return redirect(url_for('jobs.add_job_manual'))
 
-        job_id = Job.create(
-            url=url,
-            raw_html='',
-            raw_text=requirements,
-            company_name=company,
-            job_title=title,
-            location=location,
-            compensation=compensation,
-            date_posted=date_posted,
-            requirements=requirements,
-        )
+        try:
+            job_id = Job.create(
+                url=url,
+                raw_html='',
+                raw_text=requirements,
+                company_name=company,
+                job_title=title,
+                location=location,
+                compensation=compensation,
+                date_posted=date_posted,
+                requirements=requirements,
+            )
+        except Exception as e:
+            if isinstance(e, sqlite3.IntegrityError):
+                flash('This job posting has already been added', 'warning')
+                return redirect(url_for('jobs.list_jobs'))
+            current_app.logger.error(f"Failed to create job: {e}")
+            flash('Failed to save job posting. Please try again.', 'error')
+            return redirect(url_for('jobs.add_job_manual'))
 
         flash(f'Job added: {title} at {company}', 'success')
         return redirect(url_for('jobs.view_job', job_id=job_id))

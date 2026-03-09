@@ -85,12 +85,12 @@ class ScraperService:
                     raise ValueError(
                         f"Scraping aborted: redirected to a private address ({page.url})"
                     )
-                # Wait for network to settle — catches SPA/JS-rendered pages (e.g. Workday)
+                # Wait for network to settle — catches SPA/JS-rendered pages (e.g. Workday).
+                # If networkidle times out, fall back to a fixed wait to give JS time to render.
                 try:
                     page.wait_for_load_state('networkidle', timeout=15000)
                 except PlaywrightTimeout:
-                    pass  # Network didn't fully idle — proceed with what we have
-                page.wait_for_timeout(2000)
+                    page.wait_for_timeout(2000)
                 html_content = page.content()
                 if len(html_content.encode('utf-8')) > _MAX_RESPONSE_BYTES:
                     raise ValueError(
