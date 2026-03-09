@@ -1,9 +1,9 @@
 """
 TailorAnalysis Model - Database operations for saved tailoring analyses
 """
-import json
 import logging
 from models.database import get_db_context, get_db
+from utils.json_helpers import ensure_json_string, safe_json_loads
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class TailorAnalysis:
         Returns:
             ID of the newly created analysis
         """
-        analysis_json = json.dumps(analysis_data) if isinstance(analysis_data, dict) else analysis_data
+        analysis_json = ensure_json_string(analysis_data)
         with get_db_context() as (conn, cursor):
             cursor.execute('''
                 INSERT INTO tailor_analyses (job_id, analysis_json, strategy_text)
@@ -37,22 +37,17 @@ class TailorAnalysis:
         db = get_db()
         cursor = db.cursor()
         cursor.execute('SELECT * FROM tailor_analyses WHERE id = ?', (analysis_id,))
-        row = cursor.fetchone()
-        if row:
-            return dict(row)
-        return None
+        return cursor.fetchone()
 
     @staticmethod
     def get_parsed(analysis_id):
         """Get analysis with the JSON field parsed into a Python dict"""
         row = TailorAnalysis.get_by_id(analysis_id)
-        if row:
-            try:
-                row['analysis_data'] = json.loads(row['analysis_json'])
-            except (json.JSONDecodeError, TypeError):
-                logger.error("Corrupted analysis_json for analysis_id=%s", analysis_id)
-                row['analysis_data'] = {}
-        return row
+        if row is None:
+            return None
+        result = dict(row)
+        result['analysis_data'] = safe_json_loads(result['analysis_json'], f'analysis_id={analysis_id}')
+        return result
 
     @staticmethod
     def get_by_job_id(job_id):

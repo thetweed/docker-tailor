@@ -1,9 +1,9 @@
 """
 Export Profile Model - Database operations for export profiles and rules
 """
-import json
 import logging
 from models.database import get_db_context, get_db
+from utils.json_helpers import ensure_json_string, safe_json_loads
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +71,11 @@ class ExportProfile:
         """Update profile name, description, and optionally header_info"""
         with get_db_context() as (conn, cursor):
             if header_info is not None:
-                header_json = json.dumps(header_info) if isinstance(header_info, dict) else header_info
                 cursor.execute('''
                     UPDATE export_profiles
                     SET name = ?, description = ?, header_info = ?, date_modified = CURRENT_TIMESTAMP
                     WHERE id = ?
-                ''', (name, description, header_json, profile_id))
+                ''', (name, description, ensure_json_string(header_info), profile_id))
             else:
                 cursor.execute('''
                     UPDATE export_profiles
@@ -88,13 +87,12 @@ class ExportProfile:
     @staticmethod
     def update_header_info(profile_id, header_info):
         """Update only the header_info for a profile"""
-        header_json = json.dumps(header_info) if isinstance(header_info, dict) else header_info
         with get_db_context() as (conn, cursor):
             cursor.execute('''
                 UPDATE export_profiles
                 SET header_info = ?, date_modified = CURRENT_TIMESTAMP
                 WHERE id = ?
-            ''', (header_json, profile_id))
+            ''', (ensure_json_string(header_info), profile_id))
             return cursor.rowcount > 0
 
     @staticmethod
@@ -105,7 +103,7 @@ class ExportProfile:
         cursor.execute('SELECT header_info FROM export_profiles WHERE id = ?', (profile_id,))
         row = cursor.fetchone()
         if row and row['header_info']:
-            return json.loads(row['header_info'])
+            return safe_json_loads(row['header_info'], f'header_info profile_id={profile_id}')
         return {}
 
     @staticmethod
@@ -184,11 +182,10 @@ class ExportProfile:
                 (profile_id,))
             next_order = cursor.fetchone()[0]
 
-            config_json = json.dumps(config) if isinstance(config, dict) else config
             cursor.execute('''
                 INSERT INTO export_rules (profile_id, rule_type, rule_order, config, enabled)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (profile_id, rule_type, next_order, config_json, 1 if enabled else 0))
+            ''', (profile_id, rule_type, next_order, ensure_json_string(config), 1 if enabled else 0))
 
             # Update profile modified timestamp
             cursor.execute(
@@ -222,15 +219,13 @@ class ExportProfile:
         """Update a rule's config and/or enabled state"""
         with get_db_context() as (conn, cursor):
             if config is not None and enabled is not None:
-                config_json = json.dumps(config) if isinstance(config, dict) else config
                 cursor.execute('''
                     UPDATE export_rules SET config = ?, enabled = ? WHERE id = ?
-                ''', (config_json, 1 if enabled else 0, rule_id))
+                ''', (ensure_json_string(config), 1 if enabled else 0, rule_id))
             elif config is not None:
-                config_json = json.dumps(config) if isinstance(config, dict) else config
                 cursor.execute(
                     'UPDATE export_rules SET config = ? WHERE id = ?',
-                    (config_json, rule_id))
+                    (ensure_json_string(config), rule_id))
             elif enabled is not None:
                 cursor.execute(
                     'UPDATE export_rules SET enabled = ? WHERE id = ?',
@@ -316,11 +311,7 @@ class ExportProfile:
 
         rules = []
         for rule in raw_rules:
-            try:
-                config = json.loads(rule['config'])
-            except (json.JSONDecodeError, TypeError):
-                logger.error("Corrupted config for export rule id=%s", rule['id'])
-                config = {}
+            config = safe_json_loads(rule['config'], f'export rule id={rule["id"]}')
             rules.append({
                 'id': rule['id'],
                 'profile_id': rule['profile_id'],
@@ -332,10 +323,7 @@ class ExportProfile:
 
         header_info = {}
         if profile['header_info']:
-            try:
-                header_info = json.loads(profile['header_info'])
-            except (json.JSONDecodeError, TypeError):
-                pass
+            header_info = safe_json_loads(profile['header_info'], f'header_info profile_id={profile_id}')
 
         return {
             'profile': profile,
@@ -361,7 +349,7 @@ class ExportProfile:
     def describe_rule(rule_type, config):
         """Return a human-readable description of a rule"""
         if isinstance(config, str):
-            config = json.loads(config)
+            config = safe_json_loads(config, f'describe_rule type={rule_type}')
 
         if rule_type == ExportProfile.RULE_RENAME_CATEGORY:
             target = config.get('target', 'skills')
