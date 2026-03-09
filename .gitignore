@@ -30,6 +30,7 @@ match_*.txt
 
 # Claude Code reference (local dev only)
 CLAUDE.md
+.claude/settings.local.json
 
 # OS files
 .DS_Store
