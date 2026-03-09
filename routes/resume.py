@@ -851,7 +851,7 @@ def add_skill():
         flash('Skill added successfully', 'success')
         return redirect(url_for('resume.view_resume'))
 
-    existing_categories = sorted({s['category'] for s in Skill.get_all() if s['category']})
+    existing_categories = Skill.get_categories()
     return render_template('add_skill.html', categories=existing_categories)
 
 
@@ -874,7 +874,7 @@ def edit_skill(skill_id):
         flash('Skill not found', 'error')
         return redirect(url_for('resume.view_resume'))
 
-    existing_categories = sorted({s['category'] for s in Skill.get_all() if s['category']})
+    existing_categories = Skill.get_categories()
     return render_template('edit_skill.html', skill=skill, categories=existing_categories)
 
 

@@ -218,7 +218,19 @@ class Skill:
         cursor = db.cursor()
         cursor.execute('SELECT * FROM skills ORDER BY category, skill_name')
         return cursor.fetchall()
-    
+
+    @staticmethod
+    def get_categories():
+        """Get sorted list of distinct non-empty category names"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT DISTINCT category FROM skills "
+            "WHERE category IS NOT NULL AND category != '' "
+            "ORDER BY category"
+        )
+        return [row['category'] for row in cursor.fetchall()]
+
     @staticmethod
     def update(skill_id, skill_name, category):
         """Update a skill"""
