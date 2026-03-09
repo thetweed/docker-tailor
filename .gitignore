@@ -2,7 +2,7 @@
 venv/
 env/
 
-# Environment variables (your API key!)
+# Environment variables
 .env
 
 # Python cache

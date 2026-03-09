@@ -27,18 +27,18 @@ wheels/
 .installed.cfg
 *.egg
 
-# Environment variables (will be provided at runtime)
+# Environment variables
 .env
 
-# Database (will be persisted via volume)
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Session data (will be persisted via volume)
+# Session data
 flask_session/
 
-# Uploads (will be persisted via volume)
+# Uploads
 uploads/
 
 # IDE
@@ -66,7 +66,7 @@ README.md
 .DS_Store
 Thumbs.db
 
-# Setup scripts (not needed in container)
+# Setup scripts
 setup.sh
 setup.bat
 
