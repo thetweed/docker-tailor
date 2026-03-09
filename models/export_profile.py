@@ -270,13 +270,19 @@ class ExportProfile:
     @staticmethod
     def reorder_rules(profile_id, rule_id_order):
         """Reorder rules by a list of rule IDs in desired order"""
+        if not rule_id_order:
+            return
         with get_db_context() as (conn, cursor):
+            case_sql = ' '.join('WHEN ? THEN ?' for _ in rule_id_order)
+            case_params = []
             for idx, rule_id in enumerate(rule_id_order):
-                cursor.execute('''
-                    UPDATE export_rules SET rule_order = ?
-                    WHERE id = ? AND profile_id = ?
-                ''', (idx, rule_id, profile_id))
-
+                case_params.extend([rule_id, idx])
+            placeholders = ','.join('?' * len(rule_id_order))
+            cursor.execute(
+                f'UPDATE export_rules SET rule_order = CASE id {case_sql} END '
+                f'WHERE profile_id = ? AND id IN ({placeholders})',
+                case_params + [profile_id] + list(rule_id_order)
+            )
             cursor.execute(
                 'UPDATE export_profiles SET date_modified = CURRENT_TIMESTAMP WHERE id = ?',
                 (profile_id,))

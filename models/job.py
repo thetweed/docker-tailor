@@ -109,5 +109,5 @@ class Job:
         """Check if a job with this URL already exists"""
         db = get_db()
         cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM jobs WHERE url = ?', (url,))
-        return cursor.fetchone()[0] > 0
+        cursor.execute('SELECT 1 FROM jobs WHERE url = ? LIMIT 1', (url,))
+        return cursor.fetchone() is not None
