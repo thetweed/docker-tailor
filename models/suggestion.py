@@ -13,6 +13,14 @@ class Suggestion:
     TYPE_NEW_SKILL = 'new_skill'
     TYPE_NEW_BULLET = 'new_bullet'
     TYPE_CLARIFYING_QUESTION = 'clarifying_question'
+
+    SUGGESTION_TYPES = [
+        TYPE_EXPERIENCE_ALT_TITLES,
+        TYPE_BULLET_IMPROVEMENT,
+        TYPE_NEW_SKILL,
+        TYPE_NEW_BULLET,
+        TYPE_CLARIFYING_QUESTION,
+    ]
     
     # Statuses
     STATUS_PENDING = 'pending'
@@ -118,13 +126,7 @@ class Suggestion:
         """
         pending = Suggestion.get_pending()
         
-        grouped = {
-            Suggestion.TYPE_EXPERIENCE_ALT_TITLES: [],
-            Suggestion.TYPE_BULLET_IMPROVEMENT: [],
-            Suggestion.TYPE_NEW_SKILL: [],
-            Suggestion.TYPE_NEW_BULLET: [],
-            Suggestion.TYPE_CLARIFYING_QUESTION: []
-        }
+        grouped = {t: [] for t in Suggestion.SUGGESTION_TYPES}
         
         for sugg in pending:
             sugg_type = sugg['suggestion_type']
