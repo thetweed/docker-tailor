@@ -67,6 +67,17 @@ class Experience:
         return cursor.fetchone()[0]
     
     @staticmethod
+    def exists(company_name, job_title):
+        """Return True if an experience with matching company and title already exists (case-insensitive)"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT id FROM experiences WHERE LOWER(company_name) = LOWER(?) AND LOWER(job_title) = LOWER(?)",
+            (company_name, job_title)
+        )
+        return cursor.fetchone() is not None
+
+    @staticmethod
     def delete_all():
         """Delete all experiences and their associated bullets"""
         with get_db_context() as (conn, cursor):
@@ -182,6 +193,17 @@ class Bullet:
         return cursor.fetchone()[0]
     
     @staticmethod
+    def exists(bullet_text):
+        """Return True if a bullet with matching text already exists (case-insensitive)"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT id FROM bullets WHERE LOWER(bullet_text) = LOWER(?)",
+            (bullet_text,)
+        )
+        return cursor.fetchone() is not None
+
+    @staticmethod
     def delete_all():
         """Delete all bullets and their groups"""
         with get_db_context() as (conn, cursor):
@@ -258,6 +280,17 @@ class Skill:
         return cursor.fetchone()[0]
     
     @staticmethod
+    def exists(skill_name):
+        """Return True if a skill with matching name already exists (case-insensitive)"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT id FROM skills WHERE LOWER(skill_name) = LOWER(?)",
+            (skill_name,)
+        )
+        return cursor.fetchone() is not None
+
+    @staticmethod
     def delete_all():
         """Delete all skills"""
         with get_db_context() as (conn, cursor):
@@ -325,11 +358,43 @@ class Education:
         return cursor.fetchone()[0]
     
     @staticmethod
+    def exists(school_name, degree, field_of_study):
+        """Return True if a matching education entry already exists (case-insensitive)"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT id FROM education WHERE LOWER(school_name) = LOWER(?) "
+            "AND LOWER(degree) = LOWER(?) AND LOWER(field_of_study) = LOWER(?)",
+            (school_name, degree, field_of_study)
+        )
+        return cursor.fetchone() is not None
+
+    @staticmethod
     def delete_all():
         """Delete all education entries"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM education')
             return cursor.rowcount
+
+
+def get_all_components():
+    """Fetch all four resume component tables in one context and return them as a tuple.
+
+    Returns:
+        (experiences, bullets, skills, education) — all as sqlite3.Row lists.
+        Bullets are ordered by experience_id then id for grouping convenience.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM experiences ORDER BY id")
+    experiences = cursor.fetchall()
+    cursor.execute("SELECT * FROM bullets ORDER BY experience_id, id")
+    bullets = cursor.fetchall()
+    cursor.execute("SELECT * FROM skills ORDER BY category, skill_name")
+    skills = cursor.fetchall()
+    cursor.execute("SELECT * FROM education ORDER BY id")
+    education = cursor.fetchall()
+    return experiences, bullets, skills, education
 
 
 class BulletGroup:

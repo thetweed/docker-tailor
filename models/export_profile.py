@@ -107,6 +107,13 @@ class ExportProfile:
         return {}
 
     @staticmethod
+    def parse_header_info(profile):
+        """Parse header_info from an already-fetched profile row (avoids an extra DB query)."""
+        if profile and profile['header_info']:
+            return safe_json_loads(profile['header_info'], f'header_info profile_id={profile["id"]}')
+        return {}
+
+    @staticmethod
     def delete(profile_id):
         """Delete a profile and all its rules"""
         with get_db_context() as (conn, cursor):
@@ -336,6 +343,31 @@ class ExportProfile:
             'rules': rules,
             'header_info': header_info,
         }
+
+    @staticmethod
+    def get_all_rules_grouped():
+        """Return all rules for all profiles, keyed by profile_id, configs parsed from JSON.
+
+        Used to load all rules in two queries instead of N+1 per profile.
+        """
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT * FROM export_rules ORDER BY profile_id, rule_order')
+        result = {}
+        for rule in cursor.fetchall():
+            config = safe_json_loads(rule['config'], f'export rule id={rule["id"]}')
+            pid = rule['profile_id']
+            if pid not in result:
+                result[pid] = []
+            result[pid].append({
+                'id': rule['id'],
+                'profile_id': rule['profile_id'],
+                'rule_type': rule['rule_type'],
+                'rule_order': rule['rule_order'],
+                'config': config,
+                'enabled': bool(rule['enabled']),
+            })
+        return result
 
     @staticmethod
     def get_all_with_rule_counts():

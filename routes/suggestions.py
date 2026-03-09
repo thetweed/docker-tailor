@@ -8,6 +8,24 @@ from extensions import limiter
 
 bp = Blueprint('suggestions', __name__, url_prefix='/suggestions')
 
+# Maps suggestion type → HTML anchor on the suggestions page
+_SECTION_ANCHORS = {
+    Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'titles-section',
+    Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullets-section',
+    Suggestion.TYPE_NEW_SKILL: 'skills-section',
+    Suggestion.TYPE_NEW_BULLET: 'new-bullets-section',
+    Suggestion.TYPE_CLARIFYING_QUESTION: 'questions-section',
+}
+
+# Maps suggestion type → human-readable plural label
+_TYPE_LABELS = {
+    Suggestion.TYPE_CLARIFYING_QUESTION: 'clarifying questions',
+    Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'title suggestions',
+    Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullet improvements',
+    Suggestion.TYPE_NEW_SKILL: 'skill suggestions',
+    Suggestion.TYPE_NEW_BULLET: 'bullet suggestions',
+}
+
 
 @bp.route('/')
 def view_suggestions():
@@ -42,14 +60,7 @@ def apply_suggestion(sugg_id):
     component_id = suggestion['component_id']
     suggested_text = suggestion['suggested_text']
 
-    # Map types to return sections
-    section_map = {
-        Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'titles-section',
-        Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullets-section',
-        Suggestion.TYPE_NEW_SKILL: 'skills-section',
-        Suggestion.TYPE_NEW_BULLET: 'new-bullets-section'
-    }
-    return_section = section_map.get(sugg_type, '')
+    return_section = _SECTION_ANCHORS.get(sugg_type, '')
     
     try:
         if sugg_type == Suggestion.TYPE_EXPERIENCE_ALT_TITLES:
@@ -148,14 +159,7 @@ def dismiss_suggestion(sugg_id):
     """Dismiss a suggestion"""
     suggestion = Suggestion.get_by_id(sugg_id)
     
-    section_map = {
-        Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'titles-section',
-        Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullets-section',
-        Suggestion.TYPE_NEW_SKILL: 'skills-section',
-        Suggestion.TYPE_NEW_BULLET: 'new-bullets-section',
-        Suggestion.TYPE_CLARIFYING_QUESTION: 'questions-section'
-    }
-    return_section = section_map.get(suggestion['suggestion_type'], '') if suggestion else ''
+    return_section = _SECTION_ANCHORS.get(suggestion['suggestion_type'], '') if suggestion else ''
     
     Suggestion.update_status(sugg_id, Suggestion.STATUS_DISMISSED)
     flash('Suggestion dismissed', 'info')
@@ -170,26 +174,10 @@ def dismiss_all_suggestions(suggestion_type):
     """Dismiss all suggestions of a specific type"""
     count = Suggestion.dismiss_all_by_type(suggestion_type)
     
-    type_names = {
-        Suggestion.TYPE_CLARIFYING_QUESTION: 'clarifying questions',
-        Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'title suggestions',
-        Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullet improvements',
-        Suggestion.TYPE_NEW_SKILL: 'skill suggestions',
-        Suggestion.TYPE_NEW_BULLET: 'bullet suggestions'
-    }
-    
-    friendly_name = type_names.get(suggestion_type, 'suggestions')
+    friendly_name = _TYPE_LABELS.get(suggestion_type, 'suggestions')
     flash(f'Dismissed all {count} {friendly_name}', 'info')
-    
-    section_map = {
-        Suggestion.TYPE_EXPERIENCE_ALT_TITLES: 'titles-section',
-        Suggestion.TYPE_BULLET_IMPROVEMENT: 'bullets-section',
-        Suggestion.TYPE_NEW_SKILL: 'skills-section',
-        Suggestion.TYPE_NEW_BULLET: 'new-bullets-section',
-        Suggestion.TYPE_CLARIFYING_QUESTION: 'questions-section'
-    }
-    
-    return_section = section_map.get(suggestion_type, '')
+
+    return_section = _SECTION_ANCHORS.get(suggestion_type, '')
     if return_section:
         return redirect(url_for('suggestions.view_suggestions') + f'#{return_section}')
     return redirect(url_for('suggestions.view_suggestions'))

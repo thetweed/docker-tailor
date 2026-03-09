@@ -8,6 +8,7 @@ from io import BytesIO
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from models import Experience, Bullet, Skill, Education, ExportProfile
 from models.database import get_db_context
+from models.resume import get_all_components
 from services.export_transform import apply_export_rules
 from docx import Document
 from docx.shared import Pt, Inches
@@ -17,6 +18,15 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
 bp = Blueprint('export', __name__, url_prefix='/export')
+
+
+def _require_profile(profile_id):
+    """Return the profile row, or (None, redirect_response) if not found."""
+    profile = ExportProfile.get_by_id(profile_id)
+    if not profile:
+        flash('Profile not found', 'error')
+        return None, redirect(url_for('export.export_home'))
+    return profile, None
 
 
 # ============================================================================
@@ -55,10 +65,9 @@ def create_profile():
 @bp.route('/profiles/<int:profile_id>/edit', methods=['GET', 'POST'])
 def edit_profile(profile_id):
     """Edit an export profile and manage its rules"""
-    profile = ExportProfile.get_by_id(profile_id)
-    if not profile:
-        flash('Profile not found', 'error')
-        return redirect(url_for('export.export_home'))
+    profile, err = _require_profile(profile_id)
+    if err:
+        return err
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -89,9 +98,6 @@ def edit_profile(profile_id):
 
     # Gather data for rule config forms
     with get_db_context() as (conn, cursor):
-        cursor.execute("SELECT DISTINCT category FROM skills WHERE category IS NOT NULL ORDER BY category")
-        skill_categories = [row['category'] for row in cursor.fetchall()]
-
         cursor.execute("SELECT id, skill_name, category FROM skills ORDER BY category, skill_name")
         all_skills = cursor.fetchall()
 
@@ -101,6 +107,15 @@ def edit_profile(profile_id):
         cursor.execute("SELECT id, job_title, company_name, alternate_titles FROM experiences ORDER BY id")
         experiences = cursor.fetchall()
 
+    # Derive skill categories from the already-fetched skills list (preserves sorted order)
+    seen_cats = set()
+    skill_categories = []
+    for skill in all_skills:
+        cat = skill['category']
+        if cat and cat not in seen_cats:
+            seen_cats.add(cat)
+            skill_categories.append(cat)
+
     # Build skills-by-category dict for the split rule form
     skills_by_category = {}
     for skill in all_skills:
@@ -109,8 +124,7 @@ def edit_profile(profile_id):
             skills_by_category[cat] = []
         skills_by_category[cat].append({'id': skill['id'], 'name': skill['skill_name']})
 
-    # Load header info
-    header_info = ExportProfile.get_header_info(profile_id)
+    header_info = ExportProfile.parse_header_info(profile)
 
     return render_template(
         'edit_export_profile.html',
@@ -129,10 +143,9 @@ def edit_profile(profile_id):
 @bp.route('/profiles/<int:profile_id>/header', methods=['POST'])
 def update_header_info(profile_id):
     """Update the personal header info for a profile"""
-    profile = ExportProfile.get_by_id(profile_id)
-    if not profile:
-        flash('Profile not found', 'error')
-        return redirect(url_for('export.export_home'))
+    profile, err = _require_profile(profile_id)
+    if err:
+        return err
 
     header_info = {
         'name': request.form.get('header_name', '').strip(),
@@ -153,22 +166,20 @@ def update_header_info(profile_id):
 @bp.route('/profiles/<int:profile_id>/delete', methods=['POST'])
 def delete_profile(profile_id):
     """Delete an export profile"""
-    profile = ExportProfile.get_by_id(profile_id)
-    if profile:
-        ExportProfile.delete(profile_id)
-        flash(f'Profile "{profile["name"]}" deleted', 'success')
-    else:
-        flash('Profile not found', 'error')
+    profile, err = _require_profile(profile_id)
+    if err:
+        return err
+    ExportProfile.delete(profile_id)
+    flash(f'Profile "{profile["name"]}" deleted', 'success')
     return redirect(url_for('export.export_home'))
 
 
 @bp.route('/profiles/<int:profile_id>/duplicate', methods=['POST'])
 def duplicate_profile(profile_id):
     """Duplicate an export profile"""
-    profile = ExportProfile.get_by_id(profile_id)
-    if not profile:
-        flash('Profile not found', 'error')
-        return redirect(url_for('export.export_home'))
+    profile, err = _require_profile(profile_id)
+    if err:
+        return err
 
     new_name = f"{profile['name']} (Copy)"
     new_id = ExportProfile.duplicate(profile_id, new_name)
@@ -179,10 +190,9 @@ def duplicate_profile(profile_id):
 @bp.route('/profiles/<int:profile_id>/set-default', methods=['POST'])
 def set_default_profile(profile_id):
     """Set a profile as the default"""
-    profile = ExportProfile.get_by_id(profile_id)
-    if not profile:
-        flash('Profile not found', 'error')
-        return redirect(url_for('export.export_home'))
+    profile, err = _require_profile(profile_id)
+    if err:
+        return err
 
     ExportProfile.set_default(profile_id)
     flash(f'"{profile["name"]}" set as default profile', 'success')
@@ -310,19 +320,7 @@ def _build_rule_config(rule_type, form):
 @bp.route('/select')
 def export_select():
     """Show component selection page for resume export"""
-    with get_db_context() as (conn, cursor):
-        # Get all resume components
-        cursor.execute("SELECT * FROM experiences ORDER BY id")
-        experiences = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM bullets ORDER BY experience_id, id")
-        bullets = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM skills ORDER BY category, skill_name")
-        skills = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM education ORDER BY id")
-        education = cursor.fetchall()
+    experiences, bullets, skills, education = get_all_components()
 
     # Check if user has resume data
     if not experiences and not bullets and not skills and not education:
@@ -341,19 +339,19 @@ def export_select():
     profiles = ExportProfile.get_all_with_rule_counts()
     default_profile = ExportProfile.get_default()
 
-    # Build profile rules data for JS (so rule toggles render client-side)
-    profiles_rules_data = {}
-    for profile in profiles:
-        profile_data = ExportProfile.get_profile_with_rules(profile['id'])
-        if profile_data:
-            profiles_rules_data[profile['id']] = [
-                {
-                    'id': r['id'],
-                    'description': ExportProfile.describe_rule(r['rule_type'], r['config']),
-                    'enabled': r['enabled'],
-                }
-                for r in profile_data['rules']
-            ]
+    # Build profile rules data for JS (so rule toggles render client-side) — 2 queries, not N+1
+    all_rules_by_profile = ExportProfile.get_all_rules_grouped()
+    profiles_rules_data = {
+        profile['id']: [
+            {
+                'id': r['id'],
+                'description': ExportProfile.describe_rule(r['rule_type'], r['config']),
+                'enabled': r['enabled'],
+            }
+            for r in all_rules_by_profile.get(profile['id'], [])
+        ]
+        for profile in profiles
+    }
 
     # Check if pre-selecting from a tailor analysis
     analysis_id = request.args.get('analysis_id', type=int)

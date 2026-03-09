@@ -12,25 +12,21 @@ bp = Blueprint('main', __name__)
 def index():
     """Homepage/Dashboard"""
     with get_db_context() as (conn, cursor):
-        # Get counts
-        cursor.execute("SELECT COUNT(*) FROM jobs")
-        job_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM experiences")
-        exp_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM bullets")
-        bullet_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM skills")
-        skill_count = cursor.fetchone()[0]
-
-        # Get pending suggestions count
+        # Get all counts in a single query
         cursor.execute("""
-            SELECT COUNT(*) FROM suggestions
-            WHERE status = 'pending'
+            SELECT
+                (SELECT COUNT(*) FROM jobs) AS job_count,
+                (SELECT COUNT(*) FROM experiences) AS exp_count,
+                (SELECT COUNT(*) FROM bullets) AS bullet_count,
+                (SELECT COUNT(*) FROM skills) AS skill_count,
+                (SELECT COUNT(*) FROM suggestions WHERE status = 'pending') AS total_pending
         """)
-        total_pending = cursor.fetchone()[0]
+        counts = cursor.fetchone()
+        job_count = counts['job_count']
+        exp_count = counts['exp_count']
+        bullet_count = counts['bullet_count']
+        skill_count = counts['skill_count']
+        total_pending = counts['total_pending']
 
         # Get recent jobs (last 5)
         cursor.execute("""

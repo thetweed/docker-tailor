@@ -4,6 +4,7 @@ Tailoring Routes - Resume tailoring for specific jobs
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
 from models.database import get_db_context
+from models.resume import get_all_components
 from models.tailor_analysis import TailorAnalysis
 from services.ai_service import get_ai_service
 from extensions import limiter
@@ -11,6 +12,16 @@ from datetime import datetime
 import os
 
 bp = Blueprint('tailoring', __name__, url_prefix='/tailor')
+
+
+def _build_component_dicts(experiences, bullets, skills, education):
+    """Return id-keyed lookup dicts for each component list (for template rendering)."""
+    return (
+        {exp['id']: exp for exp in experiences},
+        {b['id']: b for b in bullets},
+        {s['id']: s for s in skills},
+        {e['id']: e for e in education},
+    )
 
 
 def resolve_skill_ids(analysis_data, all_skills):
@@ -77,17 +88,7 @@ def run_tailor(job_id):
             flash('Job not found', 'error')
             return redirect(url_for('tailoring.tailor_home'))
 
-        cursor.execute("SELECT * FROM experiences ORDER BY id")
-        experiences = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM bullets ORDER BY id")
-        bullets = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM skills ORDER BY category, skill_name")
-        skills = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM education ORDER BY id")
-        education = cursor.fetchall()
+    experiences, bullets, skills, education = get_all_components()
 
     if not experiences and not bullets and not skills:
         flash('Please add resume components before tailoring', 'error')
@@ -112,10 +113,9 @@ def run_tailor(job_id):
         )
 
         # Build lookup dictionaries for template
-        exp_dict = {exp['id']: exp for exp in experiences}
-        bullet_dict = {b['id']: b for b in bullets}
-        skill_dict = {s['id']: s for s in skills}
-        edu_dict = {e['id']: e for e in education}
+        exp_dict, bullet_dict, skill_dict, edu_dict = _build_component_dicts(
+            experiences, bullets, skills, education
+        )
 
         return render_template(
             'tailor_results.html',
@@ -151,23 +151,15 @@ def view_db_analysis(analysis_id):
         cursor.execute("SELECT * FROM jobs WHERE id = ?", (analysis['job_id'],))
         job = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM experiences ORDER BY id")
-        experiences = cursor.fetchall()
-        cursor.execute("SELECT * FROM bullets ORDER BY id")
-        bullets = cursor.fetchall()
-        cursor.execute("SELECT * FROM skills ORDER BY category, skill_name")
-        skills = cursor.fetchall()
-        cursor.execute("SELECT * FROM education ORDER BY id")
-        education = cursor.fetchall()
+    experiences, bullets, skills, education = get_all_components()
 
     if not job:
         flash('Associated job not found', 'error')
         return redirect(url_for('tailoring.saved_analyses'))
 
-    exp_dict = {exp['id']: exp for exp in experiences}
-    bullet_dict = {b['id']: b for b in bullets}
-    skill_dict = {s['id']: s for s in skills}
-    edu_dict = {e['id']: e for e in education}
+    exp_dict, bullet_dict, skill_dict, edu_dict = _build_component_dicts(
+        experiences, bullets, skills, education
+    )
 
     return render_template(
         'tailor_results.html',

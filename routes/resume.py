@@ -184,45 +184,6 @@ def review_import():
     )
 
 
-def check_experience_duplicate(company_name, job_title):
-    """Check if an experience with the same company and title already exists"""
-    with get_db_context() as (conn, cursor):
-        cursor.execute(
-            "SELECT id FROM experiences WHERE LOWER(company_name) = LOWER(?) AND LOWER(job_title) = LOWER(?)",
-            (company_name, job_title)
-        )
-        return cursor.fetchone() is not None
-
-
-def check_bullet_duplicate(bullet_text):
-    """Check if a bullet with the same text already exists"""
-    with get_db_context() as (conn, cursor):
-        cursor.execute(
-            "SELECT id FROM bullets WHERE LOWER(bullet_text) = LOWER(?)",
-            (bullet_text,)
-        )
-        return cursor.fetchone() is not None
-
-
-def check_skill_duplicate(skill_name):
-    """Check if a skill with the same name already exists"""
-    with get_db_context() as (conn, cursor):
-        cursor.execute(
-            "SELECT id FROM skills WHERE LOWER(skill_name) = LOWER(?)",
-            (skill_name,)
-        )
-        return cursor.fetchone() is not None
-
-
-def check_education_duplicate(school_name, degree, field_of_study):
-    """Check if an education entry with the same details already exists"""
-    with get_db_context() as (conn, cursor):
-        cursor.execute(
-            "SELECT id FROM education WHERE LOWER(school_name) = LOWER(?) AND LOWER(degree) = LOWER(?) AND LOWER(field_of_study) = LOWER(?)",
-            (school_name, degree, field_of_study)
-        )
-        return cursor.fetchone() is not None
-
 
 def _save_suggestions(suggestions_data, experience_map, bullet_map):
     """Save AI suggestions to the database.
@@ -425,7 +386,7 @@ def save_import():
 
         # Save experiences (skip duplicates)
         for exp in parsed_data.get('experiences', []):
-            if check_experience_duplicate(exp['company'], exp['title']):
+            if Experience.exists(exp['company'], exp['title']):
                 stats['experiences_skipped'] += 1
                 # Still map for bullet relationships, but get existing ID
                 with get_db_context() as (conn, cursor):
@@ -450,7 +411,7 @@ def save_import():
 
         # Save bullets (skip duplicates)
         for bullet in parsed_data.get('bullets', []):
-            if check_bullet_duplicate(bullet['text']):
+            if Bullet.exists(bullet['text']):
                 stats['bullets_skipped'] += 1
                 # Still map for suggestions
                 with get_db_context() as (conn, cursor):
@@ -474,7 +435,7 @@ def save_import():
 
         # Save skills (skip duplicates)
         for skill in parsed_data.get('skills', []):
-            if check_skill_duplicate(skill['name']):
+            if Skill.exists(skill['name']):
                 stats['skills_skipped'] += 1
             else:
                 Skill.create(
@@ -485,7 +446,7 @@ def save_import():
 
         # Save education (skip duplicates)
         for edu in parsed_data.get('education', []):
-            if check_education_duplicate(edu['school'], edu.get('degree', ''), edu.get('field', '')):
+            if Education.exists(edu['school'], edu.get('degree', ''), edu.get('field', '')):
                 stats['education_skipped'] += 1
             else:
                 Education.create(
