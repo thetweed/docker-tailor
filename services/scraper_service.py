@@ -1,35 +1,16 @@
 """
 Web Scraper Service - Job posting scraping with fallback
 """
-import ipaddress
-import socket
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout, Error as PlaywrightError
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 from flask import current_app
+from utils.security import is_safe_url
 
 _MAX_REDIRECTS = 10
 _MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5MB — job postings should never be this large
-
-
-def _is_safe_url(url):
-    """Return False if the URL resolves to a private/internal address (SSRF protection).
-
-    Checks all resolved addresses via getaddrinfo() to cover IPv6. Called both
-    before scraping (in routes/jobs.py) and after navigation to catch redirects.
-    """
-    try:
-        hostname = urlparse(url).hostname
-        if not hostname:
-            return False
-        for addr_info in socket.getaddrinfo(hostname, None):
-            ip = ipaddress.ip_address(addr_info[4][0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                return False
-        return True
-    except (socket.gaierror, ValueError):
-        return False
+_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 
 class ScraperService:
@@ -75,13 +56,13 @@ class ScraperService:
             page = None
             try:
                 context = browser.new_context(
-                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    user_agent=_USER_AGENT
                 )
                 page = context.new_page()
                 page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                 page.goto(url, wait_until='domcontentloaded', timeout=timeout)
                 # Validate final URL after redirects (SSRF: redirect bypass protection)
-                if not _is_safe_url(page.url):
+                if not is_safe_url(page.url):
                     raise ValueError(
                         f"Scraping aborted: redirected to a private address ({page.url})"
                     )
@@ -109,7 +90,7 @@ class ScraperService:
     def _scrape_with_requests(url):
         """Scrape using requests (simpler, for static sites)"""
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': _USER_AGENT,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Connection': 'keep-alive',
@@ -124,7 +105,7 @@ class ScraperService:
                 location = response.headers.get('Location', '')
                 if not location.startswith('http'):
                     location = urljoin(current_url, location)
-                if not _is_safe_url(location):
+                if not is_safe_url(location):
                     raise ValueError(
                         f"Scraping aborted: redirect to a private address ({location})"
                     )

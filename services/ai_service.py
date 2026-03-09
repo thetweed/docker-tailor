@@ -156,7 +156,7 @@ class AIService:
         variants = parsed.get('variants', [])
         if not isinstance(variants, list):
             raise ValueError("AI returned unexpected format for bullet variants")
-        return [str(v).strip() for v in variants if str(v).strip()]
+        return [s for s in (str(v).strip() for v in variants) if s]
 
     def cleanup_skill_categories(self, skills):
         """Analyze skills and suggest category consolidation"""
@@ -168,11 +168,11 @@ class AIService:
                 skills_by_category[cat] = []
             skills_by_category[cat].append(skill['skill_name'])
 
-        skills_data = ""
+        parts = []
         for category, skill_list in skills_by_category.items():
-            skills_data += f"\n{category}:\n"
-            for skill_name in skill_list:
-                skills_data += f"  - {skill_name}\n"
+            parts.append(f"\n{category}:")
+            parts.extend(f"  - {name}" for name in skill_list)
+        skills_data = "\n".join(parts)
 
         prompt = Prompts.skill_category_cleanup(skills_data)
         response = self._call_claude(prompt, max_tokens=2000)

@@ -1,33 +1,14 @@
 """
 Job Routes - Job posting management with caching
 """
-import ipaddress
-import socket
 import sqlite3
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from urllib.parse import urlparse
 from models import Job
 from services import get_ai_service, ScraperService
+from utils.security import is_safe_url
 
 bp = Blueprint('jobs', __name__, url_prefix='/jobs')
-
-
-def _is_safe_url(url):
-    """Return False if the URL resolves to a private/internal IP (SSRF protection).
-
-    Uses getaddrinfo() to check all resolved addresses including IPv6.
-    """
-    try:
-        hostname = urlparse(url).hostname
-        if not hostname:
-            return False
-        for addr_info in socket.getaddrinfo(hostname, None):
-            ip = ipaddress.ip_address(addr_info[4][0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                return False
-        return True
-    except (socket.gaierror, ValueError):
-        return False
 
 
 @bp.route('/')
@@ -78,7 +59,7 @@ def add_job():
             flash('Only http:// and https:// URLs are supported', 'error')
             return redirect(url_for('jobs.add_job'))
 
-        if not _is_safe_url(url):
+        if not is_safe_url(url):
             flash('That URL cannot be used — it resolves to a private or reserved address.', 'error')
             return redirect(url_for('jobs.add_job'))
 
@@ -159,7 +140,7 @@ def add_job_manual():
             flash('Only http:// and https:// URLs are supported', 'error')
             return redirect(url_for('jobs.add_job_manual'))
 
-        if not _is_safe_url(url):
+        if not is_safe_url(url):
             flash('That URL cannot be used — it resolves to a private or reserved address.', 'error')
             return redirect(url_for('jobs.add_job_manual'))
 

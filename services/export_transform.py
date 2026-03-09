@@ -40,43 +40,52 @@ def apply_export_rules(experiences, bullets, skills, education, rules):
     return data
 
 
+def _get_target_items(data, config):
+    """Return the item list for the rule's target section (default: 'skills')."""
+    return data.get(config.get('target', 'skills'), [])
+
+
+def _set_experience_field(data, exp_id, field, value):
+    """Find an experience by ID and set a single field on it."""
+    for exp in data['experiences']:
+        if exp.get('id') == exp_id:
+            exp[field] = value
+            break
+
+
 def _apply_rename_category(data, config):
     """Rename a category on skills or bullets."""
-    target = config.get('target', 'skills')
     from_name = config.get('from_name', '')
     to_name = config.get('to_name', '')
 
     if not from_name or not to_name:
         return
 
-    items = data.get(target, [])
-    category_key = 'category'
-
-    for item in items:
-        if item.get(category_key) == from_name:
-            item[category_key] = to_name
+    for item in _get_target_items(data, config):
+        if item.get('category') == from_name:
+            item['category'] = to_name
 
 
 def _apply_merge_categories(data, config):
     """Merge multiple categories into one."""
-    target = config.get('target', 'skills')
     source_categories = config.get('source_categories', [])
     destination = config.get('destination_category', '')
 
     if not source_categories or not destination:
         return
 
-    items = data.get(target, [])
-    category_key = 'category'
-
-    for item in items:
-        if item.get(category_key) in source_categories:
-            item[category_key] = destination
+    source_set = set(source_categories)
+    for item in _get_target_items(data, config):
+        if item.get('category') in source_set:
+            item['category'] = destination
 
 
 def _apply_split_category(data, config):
-    """Split a category into sub-categories based on item IDs."""
-    target = config.get('target', 'skills')
+    """Split skills into sub-categories based on skill IDs.
+
+    Note: despite the generic 'target' config key, the 'splits' entries use
+    'skill_ids' — this rule only applies meaningfully to the skills section.
+    """
     splits = config.get('splits', [])
 
     if not splits:
@@ -89,8 +98,7 @@ def _apply_split_category(data, config):
         for item_id in split.get('skill_ids', []):
             id_to_category[item_id] = new_cat
 
-    items = data.get(target, [])
-    for item in items:
+    for item in _get_target_items(data, config):
         item_id = item.get('id')
         if item_id in id_to_category:
             item['category'] = id_to_category[item_id]
@@ -111,10 +119,7 @@ def _apply_use_alternate_title(data, config):
     if exp_id is None or not title:
         return
 
-    for exp in data['experiences']:
-        if exp.get('id') == exp_id:
-            exp['job_title'] = title
-            break
+    _set_experience_field(data, exp_id, 'job_title', title)
 
 
 def _apply_rename_company(data, config):
@@ -125,10 +130,7 @@ def _apply_rename_company(data, config):
     if exp_id is None or not display_name:
         return
 
-    for exp in data['experiences']:
-        if exp.get('id') == exp_id:
-            exp['company_name'] = display_name
-            break
+    _set_experience_field(data, exp_id, 'company_name', display_name)
 
 
 RULE_HANDLERS = {
