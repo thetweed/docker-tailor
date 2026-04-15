@@ -63,4 +63,5 @@ EXPOSE 5000
 
 # Run the application via gunicorn (no debug, production config)
 # workers=1 because SQLite + filesystem sessions don't support multi-process safely
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "app:create_app()"]
+# timeout 180 > AI_TIMEOUT (120s) so the Anthropic client gives up first and the route returns a clean error
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "180", "app:create_app()"]

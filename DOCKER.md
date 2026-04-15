@@ -113,6 +113,18 @@ ports:
   - "9090:5000"  # Change 9090 to any available port
 ```
 
+### Container exits immediately (or "app doesn't respond")
+Almost always a missing env var. Check the logs:
+```bash
+docker logs resume-tailor-app
+```
+Look for either:
+- `ValueError: FLASK_SECRET_KEY is not set` — add `FLASK_SECRET_KEY` to your `.env`
+- `ANTHROPIC_API_KEY must be set in production` — add `ANTHROPIC_API_KEY` to your `.env`
+- An `Env check:` line near the top showing which vars are `set` vs `MISSING`
+
+With `docker-compose`, these are auto-loaded from `.env` in the project root. With plain `docker run`, you must pass `--env-file .env` (or `-e VAR=value` for each).
+
 ### API key not working
 Make sure your `.env` file is in the same directory as `docker-compose.yml` and contains:
 ```
@@ -138,22 +150,31 @@ docker-compose logs -f
 
 ## Building Without Docker Compose
 
-If you prefer to use Docker directly:
+Docker Compose is the recommended path — it auto-loads your `.env` file and includes the session-cleanup sidecar. If you need to use `docker` directly (e.g., for CI or orchestration), use `--env-file` so the same `.env` is loaded:
 
 ```bash
 # Build the image
 docker build -t resume-tailor .
 
-# Run the container
+# Run the container — --env-file loads ANTHROPIC_API_KEY, FLASK_SECRET_KEY, and LOGIN_PASSWORD from .env
 docker run -d \
   -p 8080:5000 \
-  -e ANTHROPIC_API_KEY=your_api_key_here \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/uploads:/app/uploads \
-  -v $(pwd)/flask_session:/app/flask_session \
+  --env-file .env \
+  -v "$(pwd)/data":/app/data \
+  -v "$(pwd)/uploads":/app/uploads \
+  -v "$(pwd)/flask_session":/app/flask_session \
+  --restart unless-stopped \
   --name resume-tailor-app \
   resume-tailor
 ```
+
+> **Important:** `FLASK_SECRET_KEY` is required — the app will fail to boot without it. `.env` must contain both `ANTHROPIC_API_KEY` and `FLASK_SECRET_KEY` (see the Quick Start section above for how to create them). If you'd rather pass vars inline instead of `--env-file`, you must include both: `-e ANTHROPIC_API_KEY=... -e FLASK_SECRET_KEY=...`.
+
+After starting, check the logs to confirm env wiring:
+```bash
+docker logs resume-tailor-app | grep "Env check"
+```
+You should see `ANTHROPIC_API_KEY=set, FLASK_SECRET_KEY=set`. If either says `MISSING`, the container will exit — fix your `.env` and re-run.
 
 ## Security Notes
 

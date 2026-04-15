@@ -36,6 +36,15 @@ def create_app(config_name=None):
         format='%(asctime)s %(levelname)s %(name)s: %(message)s'
     )
 
+    # Surface env wiring at startup so operators can verify from `docker logs`
+    # without exec'ing in. Never log the key itself.
+    app.logger.info(
+        "Env check: ANTHROPIC_API_KEY=%s, FLASK_SECRET_KEY=%s, LOGIN_PASSWORD=%s",
+        "set" if app.config.get('ANTHROPIC_API_KEY') else "MISSING",
+        "set" if app.config.get('SECRET_KEY') else "MISSING",
+        "set" if app.config.get('LOGIN_PASSWORD') else "unset (auth disabled)",
+    )
+
     # Initialize Flask-Session
     Session(app)
 
