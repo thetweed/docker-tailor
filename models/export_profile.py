@@ -96,17 +96,6 @@ class ExportProfile:
             return cursor.rowcount > 0
 
     @staticmethod
-    def get_header_info(profile_id):
-        """Get parsed header_info dict for a profile"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT header_info FROM export_profiles WHERE id = ?', (profile_id,))
-        row = cursor.fetchone()
-        if row and row['header_info']:
-            return safe_json_loads(row['header_info'], f'header_info profile_id={profile_id}')
-        return {}
-
-    @staticmethod
     def parse_header_info(profile):
         """Parse header_info from an already-fetched profile row (avoids an extra DB query)."""
         if profile and profile['header_info']:
@@ -222,31 +211,6 @@ class ExportProfile:
         return cursor.fetchone()
 
     @staticmethod
-    def update_rule(rule_id, config=None, enabled=None):
-        """Update a rule's config and/or enabled state"""
-        with get_db_context() as (conn, cursor):
-            if config is not None and enabled is not None:
-                cursor.execute('''
-                    UPDATE export_rules SET config = ?, enabled = ? WHERE id = ?
-                ''', (ensure_json_string(config), 1 if enabled else 0, rule_id))
-            elif config is not None:
-                cursor.execute(
-                    'UPDATE export_rules SET config = ? WHERE id = ?',
-                    (ensure_json_string(config), rule_id))
-            elif enabled is not None:
-                cursor.execute(
-                    'UPDATE export_rules SET enabled = ? WHERE id = ?',
-                    (1 if enabled else 0, rule_id))
-
-            # Update parent profile's modified timestamp
-            cursor.execute('''
-                UPDATE export_profiles SET date_modified = CURRENT_TIMESTAMP
-                WHERE id = (SELECT profile_id FROM export_rules WHERE id = ?)
-            ''', (rule_id,))
-
-            return cursor.rowcount > 0
-
-    @staticmethod
     def delete_rule(rule_id):
         """Delete a rule"""
         with get_db_context() as (conn, cursor):
@@ -273,34 +237,6 @@ class ExportProfile:
                 WHERE id = ?
             ''', (rule_id,))
             return cursor.rowcount > 0
-
-    @staticmethod
-    def reorder_rules(profile_id, rule_id_order):
-        """Reorder rules by a list of rule IDs in desired order"""
-        if not rule_id_order:
-            return
-        with get_db_context() as (conn, cursor):
-            case_sql = ' '.join('WHEN ? THEN ?' for _ in rule_id_order)
-            case_params = []
-            for idx, rule_id in enumerate(rule_id_order):
-                case_params.extend([rule_id, idx])
-            placeholders = ','.join('?' * len(rule_id_order))
-            cursor.execute(
-                f'UPDATE export_rules SET rule_order = CASE id {case_sql} END '
-                f'WHERE profile_id = ? AND id IN ({placeholders})',
-                case_params + [profile_id] + list(rule_id_order)
-            )
-            cursor.execute(
-                'UPDATE export_profiles SET date_modified = CURRENT_TIMESTAMP WHERE id = ?',
-                (profile_id,))
-
-    @staticmethod
-    def get_rule_count(profile_id):
-        """Get the number of rules in a profile"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM export_rules WHERE profile_id = ?', (profile_id,))
-        return cursor.fetchone()[0]
 
     # --- Composite helpers ---
 

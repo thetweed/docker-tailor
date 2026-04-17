@@ -2,14 +2,11 @@
 Tailoring Routes - Resume tailoring for specific jobs
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
-from werkzeug.utils import secure_filename
 from models.database import get_db_context
 from models.resume import get_all_components
 from models.tailor_analysis import TailorAnalysis
 from services.ai_service import get_ai_service
 from extensions import limiter
-from datetime import datetime
-import os
 
 bp = Blueprint('tailoring', __name__, url_prefix='/tailor')
 
@@ -186,89 +183,6 @@ def delete_db_analysis(analysis_id):
 
 @bp.route('/saved')
 def saved_analyses():
-    """Show list of saved tailoring analyses (DB + legacy files)"""
+    """Show list of saved tailoring analyses"""
     db_analyses = TailorAnalysis.get_all_with_job_info()
-
-    # Legacy file-based analyses
-    save_dir = os.path.join(current_app.root_path, 'saved_analyses')
-    files = []
-    if os.path.exists(save_dir):
-        for filename in os.listdir(save_dir):
-            if filename.endswith('.txt'):
-                filepath = os.path.join(save_dir, filename)
-                stat = os.stat(filepath)
-                files.append({
-                    'filename': filename,
-                    'size': stat.st_size,
-                    'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                })
-        files.sort(key=lambda x: x['modified'], reverse=True)
-
-    return render_template('saved_analyses.html', db_analyses=db_analyses, files=files)
-
-
-# --- Legacy file-based analysis routes (kept for backward compat) ---
-
-@bp.route('/saved/<filename>')
-def view_analysis(filename):
-    """View a legacy file-based tailoring analysis"""
-    filename = secure_filename(filename)
-    save_dir = os.path.join(current_app.root_path, 'saved_analyses')
-    filepath = os.path.join(save_dir, filename)
-
-    if not os.path.exists(filepath):
-        flash('Analysis file not found', 'error')
-        return redirect(url_for('tailoring.saved_analyses'))
-
-    try:
-        with open(filepath, 'r') as f:
-            content = f.read()
-        return render_template('view_analysis.html', filename=filename, content=content)
-    except Exception as e:
-        current_app.logger.exception("Error reading analysis file")
-        flash('An error occurred while reading the file.', 'error')
-        return redirect(url_for('tailoring.saved_analyses'))
-
-
-@bp.route('/saved/delete/<filename>', methods=['POST'])
-def delete_analysis(filename):
-    """Delete a legacy file-based tailoring analysis"""
-    filename = secure_filename(filename)
-    save_dir = os.path.join(current_app.root_path, 'saved_analyses')
-    filepath = os.path.join(save_dir, filename)
-
-    try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            flash('Analysis deleted successfully', 'success')
-        else:
-            flash('File not found', 'error')
-    except Exception as e:
-        current_app.logger.exception("Error deleting analysis file")
-        flash('An error occurred while deleting the file.', 'error')
-
-    return redirect(url_for('tailoring.saved_analyses'))
-
-
-@bp.route('/saved/delete-all', methods=['POST'])
-def delete_all_analyses():
-    """Delete all saved tailoring analyses (files only)"""
-    save_dir = os.path.join(current_app.root_path, 'saved_analyses')
-
-    if not os.path.exists(save_dir):
-        flash('No analyses to delete', 'info')
-        return redirect(url_for('tailoring.saved_analyses'))
-
-    try:
-        count = 0
-        for filename in os.listdir(save_dir):
-            if filename.endswith('.txt'):
-                filepath = os.path.join(save_dir, filename)
-                os.remove(filepath)
-                count += 1
-        flash(f'Successfully deleted {count} analysis file(s)', 'success')
-    except Exception as e:
-        current_app.logger.exception("Error deleting analysis files")
-        flash('An error occurred while deleting files.', 'error')
-
-    return redirect(url_for('tailoring.saved_analyses'))
+    return render_template('saved_analyses.html', db_analyses=db_analyses)

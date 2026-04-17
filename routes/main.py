@@ -4,7 +4,6 @@ Main Routes - Homepage, dashboard, and authentication
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
 from urllib.parse import urlsplit
 import secrets
-import os
 
 from extensions import limiter
 from models.database import get_db_context
@@ -23,7 +22,8 @@ def index():
                 (SELECT COUNT(*) FROM experiences) AS exp_count,
                 (SELECT COUNT(*) FROM bullets) AS bullet_count,
                 (SELECT COUNT(*) FROM skills) AS skill_count,
-                (SELECT COUNT(*) FROM suggestions WHERE status = 'pending') AS total_pending
+                (SELECT COUNT(*) FROM suggestions WHERE status = 'pending') AS total_pending,
+                (SELECT COUNT(*) FROM tailor_analyses) AS analyses_count
         """)
         counts = cursor.fetchone()
         job_count = counts['job_count']
@@ -31,6 +31,7 @@ def index():
         bullet_count = counts['bullet_count']
         skill_count = counts['skill_count']
         total_pending = counts['total_pending']
+        analyses_count = counts['analyses_count']
 
         # Get recent jobs (last 5)
         cursor.execute("""
@@ -50,12 +51,6 @@ def index():
                 job_dict['date_added'] = date_str[:10]
             recent_jobs.append(job_dict)
 
-    # Count saved analyses
-    save_dir = os.path.join(current_app.root_path, 'saved_analyses')
-    saved_analyses_count = 0
-    if os.path.exists(save_dir):
-        saved_analyses_count = len([f for f in os.listdir(save_dir) if f.endswith('.txt')])
-
     return render_template(
         'index.html',
         job_count=job_count,
@@ -63,7 +58,7 @@ def index():
         bullet_count=bullet_count,
         skill_count=skill_count,
         total_pending=total_pending,
-        saved_analyses_count=saved_analyses_count,
+        analyses_count=analyses_count,
         recent_jobs=recent_jobs
     )
 

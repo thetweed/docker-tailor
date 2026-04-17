@@ -59,14 +59,6 @@ class Experience:
             return cursor.rowcount
     
     @staticmethod
-    def count():
-        """Get total number of experiences"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM experiences')
-        return cursor.fetchone()[0]
-    
-    @staticmethod
     def exists(company_name, job_title):
         """Return True if an experience with matching company and title already exists (case-insensitive)"""
         return Experience.get_existing_id(company_name, job_title) is not None
@@ -132,14 +124,6 @@ class Bullet:
         return cursor.fetchall()
     
     @staticmethod
-    def get_by_experience(experience_id):
-        """Get all bullets for a specific experience"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT * FROM bullets WHERE experience_id = ?', (experience_id,))
-        return cursor.fetchall()
-    
-    @staticmethod
     def update(bullet_id, bullet_text, template_text, tags, category, experience_id=None):
         """Update a bullet"""
         with get_db_context() as (conn, cursor):
@@ -189,14 +173,6 @@ class Bullet:
             cursor.execute('UPDATE bullets SET is_group_default = 0 WHERE group_id = ?', (group_id,))
             cursor.execute('UPDATE bullets SET is_group_default = 1 WHERE id = ?', (bullet_id,))
             return True
-    
-    @staticmethod
-    def count():
-        """Get total number of bullets"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM bullets')
-        return cursor.fetchone()[0]
     
     @staticmethod
     def exists(bullet_text):
@@ -284,14 +260,6 @@ class Skill:
             return cursor.rowcount
     
     @staticmethod
-    def count():
-        """Get total number of skills"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM skills')
-        return cursor.fetchone()[0]
-    
-    @staticmethod
     def exists(skill_name):
         """Return True if a skill with matching name already exists (case-insensitive)"""
         return Skill.get_existing_id(skill_name) is not None
@@ -366,14 +334,6 @@ class Education:
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM education WHERE id = ?', (edu_id,))
             return cursor.rowcount
-    
-    @staticmethod
-    def count():
-        """Get total number of education entries"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM education')
-        return cursor.fetchone()[0]
     
     @staticmethod
     def exists(school_name, degree, field_of_study):

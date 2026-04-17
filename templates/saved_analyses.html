@@ -13,7 +13,6 @@
 {% endblock %}
 
 {% block content %}
-    {# DB-stored analyses #}
     {% if db_analyses %}
     <div class="card" style="margin-bottom: var(--spacing-lg);">
         <div class="card-header">
@@ -58,59 +57,9 @@
             </tbody>
         </table>
     </div>
-    {% endif %}
-
-    {# Legacy file-based analyses #}
-    {% if files %}
-    <div class="card" style="margin-bottom: var(--spacing-lg);">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="card-title">Legacy Saved Files</h3>
-            <form method="POST" action="{{ url_for('tailoring.delete_all_analyses') }}" style="display: inline;">
-                {{ csrf_input() }}
-                <button type="submit" class="btn btn-small btn-danger"
-                        onclick="return confirm('Delete all {{ files|length }} legacy file(s)? This cannot be undone!')">
-                    Delete All Files
-                </button>
-            </form>
-        </div>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>File Name</th>
-                    <th>Date Created</th>
-                    <th>Size</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for file in files %}
-                <tr>
-                    <td><strong>{{ file.filename }}</strong></td>
-                    <td>{{ file.modified }}</td>
-                    <td>{{ "%.1f"|format(file.size / 1024) }} KB</td>
-                    <td>
-                        <a href="{{ url_for('tailoring.view_analysis', filename=file.filename) }}"
-                           class="btn btn-small btn-primary">
-                            View
-                        </a>
-                        <form method="POST" action="{{ url_for('tailoring.delete_analysis', filename=file.filename) }}" style="display: inline;">
-                            {{ csrf_input() }}
-                            <button type="submit" class="btn btn-small btn-danger"
-                                    onclick="return confirm('Delete this analysis?')">
-                                Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-
-    {% if not db_analyses and not files %}
+    {% else %}
         {{ empty_state(
-            icon='📁',
+            icon='',
             title='No saved analyses yet',
             message='Run a resume tailoring analysis to see it here.',
             action_url=url_for('tailoring.tailor_home'),

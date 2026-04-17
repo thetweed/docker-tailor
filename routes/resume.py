@@ -6,6 +6,7 @@ from collections import OrderedDict
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion
 from models.database import get_db_context
+from models.resume import get_all_components
 from services import get_ai_service
 from utils import save_uploaded_file, extract_text_from_file, cleanup_file
 from extensions import limiter
@@ -282,10 +283,7 @@ def _build_parsed_format_from_db():
         - experience_map: {company_name: experience_id}
         - bullet_map: {bullet_text: bullet_id}
     """
-    experiences = Experience.get_all()
-    bullets = Bullet.get_all()
-    skills = Skill.get_all()
-    education = Education.get_all()
+    experiences, bullets, skills, education = get_all_components()
 
     experience_map = {}
     bullet_map = {}

@@ -75,34 +75,6 @@ class Job:
         return rows, total
     
     @staticmethod
-    def get_recent(limit=5):
-        """Get most recent jobs"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('''
-            SELECT id, company_name, job_title, location, date_added 
-            FROM jobs 
-            ORDER BY date_added DESC 
-            LIMIT ?
-        ''', (limit,))
-        return cursor.fetchall()
-    
-    @staticmethod
-    def count():
-        """Get total number of jobs"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT COUNT(*) FROM jobs')
-        return cursor.fetchone()[0]
-    
-    @staticmethod
-    def delete(job_id):
-        """Delete a job"""
-        with get_db_context() as (conn, cursor):
-            cursor.execute('DELETE FROM jobs WHERE id = ?', (job_id,))
-            return cursor.rowcount
-    
-    @staticmethod
     def exists(url):
         """Check if a job with this URL already exists"""
         db = get_db()

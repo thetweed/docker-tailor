@@ -70,18 +70,6 @@ class Suggestion:
         return cursor.fetchall()
     
     @staticmethod
-    def get_by_type(suggestion_type, status=STATUS_PENDING):
-        """Get suggestions by type and status"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('''
-            SELECT * FROM suggestions 
-            WHERE suggestion_type = ? AND status = ?
-            ORDER BY date_added DESC
-        ''', (suggestion_type, status))
-        return cursor.fetchall()
-    
-    @staticmethod
     def count_by_status(status):
         """Count suggestions by status"""
         db = get_db()

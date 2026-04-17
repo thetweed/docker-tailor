@@ -50,20 +50,6 @@ class TailorAnalysis:
         return result
 
     @staticmethod
-    def get_by_job_id(job_id):
-        """Get all analyses for a specific job, newest first"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('''
-            SELECT ta.*, j.company_name, j.job_title
-            FROM tailor_analyses ta
-            JOIN jobs j ON ta.job_id = j.id
-            WHERE ta.job_id = ?
-            ORDER BY ta.date_created DESC
-        ''', (job_id,))
-        return cursor.fetchall()
-
-    @staticmethod
     def get_all_with_job_info():
         """Get all analyses with associated job info, newest first"""
         db = get_db()
@@ -81,20 +67,6 @@ class TailorAnalysis:
         """Delete a single analysis"""
         with get_db_context() as (conn, cursor):
             cursor.execute('DELETE FROM tailor_analyses WHERE id = ?', (analysis_id,))
-            return cursor.rowcount
-
-    @staticmethod
-    def delete_by_job_id(job_id):
-        """Delete all analyses for a specific job"""
-        with get_db_context() as (conn, cursor):
-            cursor.execute('DELETE FROM tailor_analyses WHERE job_id = ?', (job_id,))
-            return cursor.rowcount
-
-    @staticmethod
-    def delete_all():
-        """Delete all analyses"""
-        with get_db_context() as (conn, cursor):
-            cursor.execute('DELETE FROM tailor_analyses')
             return cursor.rowcount
 
     @staticmethod

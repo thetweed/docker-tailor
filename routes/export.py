@@ -9,6 +9,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import Experience, Bullet, Skill, Education, ExportProfile
 from models.database import get_db_context
 from models.resume import get_all_components
+from utils.json_helpers import safe_json_loads
 from services.export_transform import apply_export_rules
 from docx import Document
 from docx.shared import Pt, Inches
@@ -85,7 +86,7 @@ def edit_profile(profile_id):
     # Parse rule configs and add descriptions for display
     parsed_rules = []
     for rule in rules:
-        config = json.loads(rule['config'])
+        config = safe_json_loads(rule['config'], f'rule id={rule["id"]}')
         parsed_rules.append({
             'id': rule['id'],
             'rule_type': rule['rule_type'],
