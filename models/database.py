@@ -206,11 +206,20 @@ def init_db():
             )
         ''')
 
-        # Migrate: drop unused raw_response column if present
+        # Migrate: drop unused raw_response column if present.
+        # DROP COLUMN requires SQLite >= 3.35 (Mar 2021); older runtimes raise
+        # OperationalError, in which case we leave the column in place — it's
+        # unused and harmless. Logged so the env can be upgraded later.
         cursor.execute("PRAGMA table_info(tailor_analyses)")
         ta_cols = {row[1] for row in cursor.fetchall()}
         if 'raw_response' in ta_cols:
-            cursor.execute("ALTER TABLE tailor_analyses DROP COLUMN raw_response")
+            try:
+                cursor.execute("ALTER TABLE tailor_analyses DROP COLUMN raw_response")
+            except sqlite3.OperationalError as e:
+                logger.warning(
+                    "Could not drop tailor_analyses.raw_response column "
+                    "(SQLite < 3.35?): %s", e
+                )
 
         # FK indexes
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_bullets_experience_id ON bullets(experience_id)')

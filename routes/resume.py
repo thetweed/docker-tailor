@@ -969,10 +969,10 @@ def delete_all_components():
 
             total = exp_count + bullet_count + skill_count + edu_count
 
-            # Delete everything
-            cursor.execute("DELETE FROM experiences")
+            # Delete in FK-safe order: bullets reference experiences and bullet_groups
             cursor.execute("DELETE FROM bullets")
             cursor.execute("DELETE FROM bullet_groups")
+            cursor.execute("DELETE FROM experiences")
             cursor.execute("DELETE FROM skills")
             cursor.execute("DELETE FROM education")
 

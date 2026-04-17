@@ -2,8 +2,12 @@
 Main Routes - Homepage, dashboard, and authentication
 """
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
-from models.database import get_db_context
+from urllib.parse import urlsplit
+import secrets
 import os
+
+from extensions import limiter
+from models.database import get_db_context
 
 bp = Blueprint('main', __name__)
 
@@ -65,6 +69,7 @@ def index():
 
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     """Password login — only active when LOGIN_PASSWORD is configured."""
     # If auth is disabled, go straight to dashboard
@@ -77,12 +82,13 @@ def login():
 
     if request.method == 'POST':
         password = request.form.get('password', '')
-        if password == current_app.config.get('LOGIN_PASSWORD'):
+        expected = current_app.config.get('LOGIN_PASSWORD') or ''
+        if secrets.compare_digest(password, expected):
             session.clear()  # Prevent session fixation
             session['authenticated'] = True
             next_url = request.args.get('next', '')
-            # Only allow relative redirects to prevent open-redirect attacks
-            if not next_url.startswith('/'):
+            # Reject protocol-relative (//evil.com) and absolute URLs — only same-origin paths
+            if not next_url.startswith('/') or urlsplit(next_url).netloc != '':
                 next_url = url_for('main.index')
             return redirect(next_url)
         flash('Incorrect password.', 'error')
