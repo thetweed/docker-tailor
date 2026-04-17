@@ -3,6 +3,7 @@ Job Routes - Job posting management with caching
 """
 import sqlite3
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from markupsafe import Markup
 from urllib.parse import urlparse
 from models import Job
 from services import get_ai_service, ScraperService
@@ -101,6 +102,7 @@ def add_job():
                 f'Job added: {job_data["job_title"]} at {job_data["company_name"]}',
                 'success'
             )
+            flash(Markup('Job added! <a href="' + url_for('tailoring.run_tailor', job_id=job_id) + '">Tailor your resume for this job &rarr;</a>'), 'info')
             return redirect(url_for('jobs.view_job', job_id=job_id))
             
         except Exception as e:
@@ -165,6 +167,7 @@ def add_job_manual():
             return redirect(url_for('jobs.add_job_manual'))
 
         flash(f'Job added: {title} at {company}', 'success')
+        flash(Markup('Job added! <a href="' + url_for('tailoring.run_tailor', job_id=job_id) + '">Tailor your resume for this job &rarr;</a>'), 'info')
         return redirect(url_for('jobs.view_job', job_id=job_id))
 
     return render_template('add_job_manual.html')

@@ -94,6 +94,16 @@ def create_app(config_name=None):
         if not session.get('authenticated'):
             return redirect(url_for('main.login', next=request.path))
 
+    @app.context_processor
+    def inject_pending_suggestions_count():
+        try:
+            with database.get_db_context() as (conn, cursor):
+                cursor.execute("SELECT COUNT(*) FROM suggestions WHERE status = 'pending'")
+                count = cursor.fetchone()[0]
+            return {'pending_suggestions_count': count}
+        except Exception:
+            return {'pending_suggestions_count': 0}
+
     return app
 
 
@@ -118,7 +128,7 @@ if __name__ == '__main__':
     # Create app (local dev only — Docker uses gunicorn)
     app = create_app('development')
 
-    logger.info("Starting Job Tracker — open http://127.0.0.1:5000")
+    logger.info("Starting Resume Tailor — open http://127.0.0.1:5000")
 
     if not env_ok:
         logger.warning("Application may not work correctly without API key")

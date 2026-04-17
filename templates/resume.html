@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 {% from 'macros/forms.html' import csrf_input, empty_state %}
 
-{% block title %}Resume Library - Job Tracker{% endblock %}
+{% block title %}My Resume - Resume Tailor{% endblock %}
 
 {% block page_header %}
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>📚 Resume Component Library</h1>
+        <h1>📚 My Resume</h1>
         <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
             <form method="POST" action="{{ url_for('resume.analyze_resume') }}"
-                  style="display: inline; margin: 0;" id="analyzeForm">
+                  style="display: inline; margin: 0;" id="improveForm">
                 {{ csrf_input() }}
-                <button type="submit" class="btn btn-secondary" id="analyzeBtn"
-                        onclick="return confirm('Run AI analysis on your resume? This will dismiss any existing pending suggestions and generate new ones. Takes about 15-20 seconds.')">
-                    Analyze with AI
+                <button type="submit" class="btn btn-secondary" id="improveBtn"
+                        onclick="return confirm('Run AI improvement suggestions on your resume? This will dismiss any existing pending suggestions and generate new ones. Takes about 15-20 seconds.')">
+                    Improve with AI
                 </button>
             </form>
             <a href="{{ url_for('resume.import_resume') }}" class="btn btn-primary">
@@ -24,10 +24,10 @@
 
 {% block content %}
     <!-- AI Analysis Loading Indicator -->
-    <div id="analyzeLoading" style="display: none; margin-bottom: var(--spacing-lg); padding: var(--spacing-lg); background: #d1ecf1; border: 1px solid #bee5eb; border-radius: var(--border-radius); text-align: center;">
+    <div id="improveLoading" style="display: none; margin-bottom: var(--spacing-lg); padding: var(--spacing-lg); background: #d1ecf1; border: 1px solid #bee5eb; border-radius: var(--border-radius); text-align: center;">
         <div class="spinner" style="margin: 0 auto var(--spacing-sm);"></div>
         <p style="margin: 0; color: #0c5460; font-weight: var(--font-weight-bold);">
-            Analyzing your resume with AI...
+            Generating improvement suggestions...
         </p>
         <p style="margin: var(--spacing-xs) 0 0; color: #0c5460; font-size: var(--font-size-sm);">
             This usually takes 15-20 seconds
@@ -97,7 +97,7 @@
             {% endfor %}
         {% else %}
             <div class="card-body">
-                <p class="text-muted text-center">No experiences added yet.</p>
+                <p class="text-muted text-center">No work experiences yet. Add jobs, internships, volunteer work, or projects.</p>
             </div>
         {% endif %}
         </div>
@@ -312,7 +312,7 @@
             {% endfor %}
         {% else %}
             <div class="card-body">
-                <p class="text-muted text-center">No bullets added yet.</p>
+                <p class="text-muted text-center">No bullet points yet. These are the achievement statements that go under each experience.</p>
             </div>
         {% endif %}
         </div>
@@ -384,7 +384,7 @@
             </div>
         {% else %}
             <div class="card-body">
-                <p class="text-muted text-center">No skills added yet.</p>
+                <p class="text-muted text-center">No skills added yet. Include technical skills, tools, languages, and soft skills.</p>
             </div>
         {% endif %}
         </div>
@@ -447,7 +447,7 @@
             {% endfor %}
         {% else %}
             <div class="card-body">
-                <p class="text-muted text-center">No education entries added yet.</p>
+                <p class="text-muted text-center">No education yet. Add degrees, certifications, bootcamps, or relevant coursework.</p>
             </div>
         {% endif %}
         </div>
@@ -599,16 +599,16 @@ if (deleteModal) {
     });
 }
 
-// AI Analysis loading state
-const analyzeForm = document.getElementById('analyzeForm');
-if (analyzeForm) {
-    analyzeForm.addEventListener('submit', function() {
-        const btn = document.getElementById('analyzeBtn');
-        const loading = document.getElementById('analyzeLoading');
+// AI Improve loading state
+const improveForm = document.getElementById('improveForm');
+if (improveForm) {
+    improveForm.addEventListener('submit', function() {
+        const btn = document.getElementById('improveBtn');
+        const loading = document.getElementById('improveLoading');
 
         btn.disabled = true;
         btn.style.opacity = '0.5';
-        btn.textContent = 'Analyzing...';
+        btn.textContent = 'Improving...';
 
         if (loading) {
             loading.style.display = 'block';

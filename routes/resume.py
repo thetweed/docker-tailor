@@ -4,7 +4,7 @@ Resume Routes - Resume component management (experiences, bullets, skills, educa
 import json
 from collections import OrderedDict
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion
+from models import Experience, Bullet, BulletGroup, Skill, Education, Suggestion, Job
 from models.database import get_db_context
 from models.resume import get_all_components
 from services import get_ai_service
@@ -493,6 +493,14 @@ def save_import():
                 flash(f'Skipped duplicates: {", ".join(details)}', 'info')
 
         flash(success_msg, 'success')
+
+        # Suggest next step if the user has no jobs yet
+        with get_db_context() as (conn, cursor):
+            cursor.execute("SELECT COUNT(*) FROM jobs")
+            job_count = cursor.fetchone()[0]
+        if job_count == 0:
+            flash('Next step: Add a job posting to tailor your resume against!', 'info')
+
         return redirect(url_for('resume.view_resume'))
 
     except Exception as e:

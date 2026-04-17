@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'macros/forms.html' import csrf_input, empty_state %}
 
-{% block title %}Dashboard - Job Tracker{% endblock %}
+{% block title %}Dashboard - Resume Tailor{% endblock %}
 
 {% block page_header %}
     <h1>📊 Dashboard</h1>
@@ -144,7 +144,42 @@
         {% endif %}
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Quick Actions / Getting Started -->
+    {% if job_count == 0 and exp_count + bullet_count == 0 and analyses_count == 0 %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🚀 Getting Started</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-lg);">
+                    <span style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); min-width: 2rem; text-align: center;">1</span>
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: var(--spacing-xs);">Import or build your resume</h3>
+                        <p class="text-muted" style="margin-bottom: var(--spacing-sm); font-size: var(--font-size-sm);">Upload an existing resume or add your experiences, skills, and education manually.</p>
+                    </div>
+                    <a href="{{ url_for('resume.import_resume') }}" class="btn btn-primary">Import Resume</a>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--spacing-lg);">
+                    <span style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); min-width: 2rem; text-align: center;">2</span>
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: var(--spacing-xs);">Add a job you're applying for</h3>
+                        <p class="text-muted" style="margin-bottom: var(--spacing-sm); font-size: var(--font-size-sm);">Paste a job posting URL and we'll extract the details automatically.</p>
+                    </div>
+                    <a href="{{ url_for('jobs.add_job') }}" class="btn btn-secondary">Add Job</a>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--spacing-lg);">
+                    <span style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); min-width: 2rem; text-align: center;">3</span>
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: var(--spacing-xs);">Tailor your resume for that job</h3>
+                        <p class="text-muted" style="margin-bottom: var(--spacing-sm); font-size: var(--font-size-sm);">AI analyzes the job requirements and suggests how to optimize your resume.</p>
+                    </div>
+                    <a href="{{ url_for('tailoring.tailor_home') }}" class="btn btn-secondary">Tailor Resume</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--spacing-lg);">
         <div class="card">
             <div class="card-body" style="text-align: center;">
@@ -157,7 +192,7 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="card">
             <div class="card-body" style="text-align: center;">
                 <h3 style="margin-bottom: var(--spacing-sm);">📤 Import Resume</h3>
@@ -169,7 +204,7 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="card">
             <div class="card-body" style="text-align: center;">
                 <h3 style="margin-bottom: var(--spacing-sm);">✨ Tailor Resume</h3>
@@ -182,6 +217,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -2,7 +2,7 @@
     <div class="container">
         <div class="navbar-brand">
             <a href="{{ url_for('main.index') }}" class="navbar-logo">
-                🎯 Job Tracker
+                🎯 Resume Tailor
             </a>
         </div>
 
@@ -17,13 +17,13 @@
                 Tailor
             </a>
             <a href="{{ url_for('resume.view_resume') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('resume.') %}active{% endif %}">
-                Components
+                Resume
             </a>
             <a href="{{ url_for('export.export_home') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('export.') %}active{% endif %}">
                 Export
             </a>
             <a href="{{ url_for('suggestions.view_suggestions') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('suggestions.') %}active{% endif %}">
-                Suggestions
+                Suggestions{% if pending_suggestions_count %} <span class="nav-badge">{{ pending_suggestions_count }}</span>{% endif %}
             </a>
         </div>
         {% if config.LOGIN_PASSWORD and session.get('authenticated') %}
